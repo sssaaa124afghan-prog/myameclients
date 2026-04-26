@@ -657,12 +657,22 @@ body{background:#fff}
     </div>
   </div>
   <div id="syncStatusBox" style="margin-bottom:16px"></div>
-  <div class="form-group" style="max-width:280px">
-    <label>فترة المزامنة التلقائية</label>
-    <select id="syncIntervalSelect" onchange="syncSetInterval(this.value)" style="padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:13px;font-family:inherit">
-      <option value="15000">كل 15 ثانية</option><option value="30000" selected>كل 30 ثانية</option>
-      <option value="60000">كل دقيقة</option><option value="120000">كل دقيقتين</option><option value="0">يدوي فقط</option>
-    </select>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:4px">
+    <div class="form-group" style="flex:1;min-width:200px">
+      <label>🔄 وضع الجهاز</label>
+      <select id="syncModeSelect" onchange="syncSetMode(this.value)" style="padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:13px;font-family:inherit;width:100%">
+        <option value="sender">📤 مرسل فقط — يرفع ولا يسحب</option>
+        <option value="receiver">📥 مستقبل فقط — يسحب ولا يرفع</option>
+        <option value="both">🔁 كلاهما — يرفع ويسحب</option>
+      </select>
+    </div>
+    <div class="form-group" style="flex:1;min-width:200px">
+      <label>⏱ فترة المزامنة التلقائية</label>
+      <select id="syncIntervalSelect" onchange="syncSetInterval(this.value)" style="padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:13px;font-family:inherit;width:100%">
+        <option value="15000">كل 15 ثانية</option><option value="30000" selected>كل 30 ثانية</option>
+        <option value="60000">كل دقيقة</option><option value="120000">كل دقيقتين</option><option value="0">يدوي فقط</option>
+      </select>
+    </div>
   </div>
   <div style="margin-top:14px">
     <div style="font-size:12px;font-weight:700;color:var(--gray-600);margin-bottom:8px"><i class="fa fa-list"></i> سجل المزامنة</div>
@@ -672,6 +682,7 @@ body{background:#fff}
 <div class="modal-footer">
   <button class="btn btn-success" onclick="syncPush(true)"><i class="fa fa-upload"></i> رفع البيانات الآن</button>
   <button class="btn btn-info" onclick="syncPull(true)"><i class="fa fa-download"></i> سحب البيانات الآن</button>
+  <button class="btn btn-warning" onclick="syncPull(true,true)" title="يتجاهل فحص التاريخ ويسحب كل شيء"><i class="fa fa-refresh"></i> سحب قسري</button>
   <button class="btn btn-outline" onclick="closeModal('syncModal')">إغلاق</button>
 </div>
 </div>
@@ -749,7 +760,7 @@ let invItemsCount = 0;
 let autoSaveTimer = null;
 
 const DATA_VERSION = '2025.01.15';
-const MAX_BACKUPS = 10;
+const MAX_BACKUPS = 3;
 
 /* ════════════════════════════════════════════════════
 📦 STORAGE & AUTO-BACKUP - نظام النسخ الاحتياطي المتقدم
@@ -849,8 +860,8 @@ function saveDBSync() {
     }
   }
 
-  // 2️⃣ نسخة احتياطية في sessionStorage (تحمي من إغلاق الصفحة)
-  try { sessionStorage.setItem('jalabiya_miami_db_bk', data); } catch(e) {}
+  // 2️⃣ نسخة احتياطية في sessionStorage (بدون صور — الصور في IDB)
+  try { sessionStorage.setItem('jalabiya_miami_db_bk', dataNoImg); } catch(e) {}
 
   // 3️⃣ IndexedDB للحماية الإضافية
   try { saveToIndexedDB(data); } catch(e) {}
@@ -864,8 +875,8 @@ function saveDBSync() {
       snaps.unshift({
         timestamp: timestamp.toISOString(),
         date: formattedTime,
-        data: data,
-        size: (data.length / 1024).toFixed(2) + ' KB',
+        data: dataNoImg,   // بدون صور — الصور في IndexedDB
+        size: (dataNoImg.length / 1024).toFixed(2) + ' KB',
         version: DATA_VERSION,
         clients: Object.values(DB).reduce((s, sec) => s + (sec.clients?.length || 0), 0),
         invoices: Object.values(DB).reduce((s, sec) => s + (sec.invoices?.length || 0), 0)
@@ -893,52 +904,46 @@ function saveDB() {
 // ── تنظيف التخزين الذكي ──
 function cleanStorage() {
   let freed = 0;
+  // 1: حذف كل النسخ الاحتياطية (الصور محفوظة في IndexedDB)
   try {
     let snaps = JSON.parse(localStorage.getItem('jalabiya_snaps') || '[]');
-    const before = snaps.length;
-    snaps = snaps.slice(0, 5);
-    localStorage.setItem('jalabiya_snaps', JSON.stringify(snaps));
-    freed += before - snaps.length;
+    freed = snaps.length;
+    localStorage.removeItem('jalabiya_snaps');
   } catch(e) {}
 
-  try {
-    let changed = false;
-    Object.keys(DB).forEach(sid => {
-      const sec = DB[sid];
-      if (!sec || typeof sec !== 'object') return;
-      ['invoices','payments'].forEach(key => {
-        if (!Array.isArray(sec[key])) return;
-        sec[key].forEach(item => {
-          if (item.image && item.image.startsWith('data:') && item.image.length > 150000) {
-            try {
-              const img = new Image();
-              img.onload = function() {
-                const canvas = document.createElement('canvas');
-                const MAX = 700; let w = img.width, h = img.height;
-                if (w > MAX) { h = Math.round(h * MAX/w); w = MAX; }
-                canvas.width = w; canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                const compressed = canvas.toDataURL('image/jpeg', 0.55);
-                if (compressed.length < item.image.length) { item.image = compressed; changed = true; }
-              };
-              img.src = item.image;
-            } catch(e) {}
-          }
-        });
+  // 2: ضغط كل الصور الموجودة في الذاكرة
+  let imgCount = 0;
+  const compressPromises = [];
+  Object.keys(DB).forEach(sid => {
+    const sec = DB[sid];
+    if (!sec || typeof sec !== 'object') return;
+    ['invoices','payments'].forEach(key => {
+      if (!Array.isArray(sec[key])) return;
+      sec[key].forEach(item => {
+        if (item.image && item.image.startsWith('data:')) {
+          const p = new Promise(resolve => {
+            compressImageBeforeSave(item.image, compressed => {
+              if (compressed.length < item.image.length) {
+                item.image = compressed;
+                imgCount++;
+              }
+              resolve();
+            });
+          });
+          compressPromises.push(p);
+        }
       });
     });
-    if (changed) setTimeout(() => saveDBSync(), 1500);
-  } catch(e) {}
+  });
 
-  setTimeout(() => {
-    const info = getStorageInfo();
-    if (freed > 0) {
-      toast('🧹 تم حذف ' + freed + ' نسخ قديمة — مساحة التخزين: ' + info.pct + '%', 'success', 5000);
-    } else {
-      toast('💾 مساحة التخزين: ' + info.pct + '% (' + info.usedKB + ' KB) — الضغط على الصور جارٍ...', 'info', 5000);
-    }
+  Promise.all(compressPromises).then(() => {
     saveDBSync();
-  }, 500);
+    const info = getStorageInfo();
+    toast(
+      '🧹 حُذف ' + freed + ' نسخ • ضُغطت ' + imgCount + ' صورة • المساحة الآن: ' + info.pct + '%',
+      freed > 0 || imgCount > 0 ? 'success' : 'info', 6000
+    );
+  });
 }
 
 function updateSaveIndicator(time) {
@@ -1060,10 +1065,13 @@ if (!confirm('⚠️ هل أنت متأكد من استعادة هذه النس�
 
 try {
 DB = JSON.parse(snaps[i].data);
-saveDB();
-renderPage();
-closeModal('snapModal');
-toast('✅ تم استعادة النسخة بنجاح', 'success');
+// إعادة تحميل الصور من IndexedDB بعد الاستعادة
+_loadImagesFromIDB(() => {
+  saveDB();
+  renderPage();
+  closeModal('snapModal');
+  toast('✅ تم استعادة النسخة بنجاح', 'success');
+});
 console.log('✅ تمت الاستعادة من:', snaps[i].date);
 } catch(e) { 
 console.error('❌ فشل الاستعادة:', e);
@@ -1367,15 +1375,43 @@ document.getElementById('imgLightboxImg').src = src;
 document.getElementById('imgLightbox').style.display = 'flex';
 }
 
+
+// ── ضغط الصورة قبل الحفظ (max 800px, max ~100KB) ──
+function compressImageBeforeSave(dataUrl, callback) {
+  const img = new Image();
+  img.onload = function() {
+    const MAX = 800;
+    let w = img.width, h = img.height;
+    if (w > MAX || h > MAX) {
+      if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+      else { w = Math.round(w * MAX / h); h = MAX; }
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    // جرب جودة 0.7 أولاً، لو لا تزال كبيرة اضغط أكثر
+    let result = canvas.toDataURL('image/jpeg', 0.7);
+    if (result.length > 150000) result = canvas.toDataURL('image/jpeg', 0.5);
+    if (result.length > 100000) result = canvas.toDataURL('image/jpeg', 0.35);
+    callback(result);
+  };
+  img.onerror = () => callback(dataUrl); // fallback للأصل
+  img.src = dataUrl;
+}
+
 function previewInvImage(e) {
 const file = e.target.files[0];
 if (!file) return;
 const reader = new FileReader();
 reader.onload = function(ev) {
-document.getElementById('inv_image_data').value = ev.target.result;
-document.getElementById('inv_img_thumb').src = ev.target.result;
-document.getElementById('inv_img_preview').style.display = 'block';
-document.getElementById('inv_clear_img').style.display = 'inline-flex';
+  compressImageBeforeSave(ev.target.result, function(compressed) {
+    document.getElementById('inv_image_data').value = compressed;
+    document.getElementById('inv_img_thumb').src = compressed;
+    document.getElementById('inv_img_preview').style.display = 'block';
+    document.getElementById('inv_clear_img').style.display = 'inline-flex';
+    const kb = (compressed.length * 0.75 / 1024).toFixed(0);
+    toast('🖼 تم ضغط الصورة: ' + kb + ' KB', 'info', 2000);
+  });
 };
 reader.readAsDataURL(file);
 }
@@ -1393,10 +1429,14 @@ const file = e.target.files[0];
 if (!file) return;
 const reader = new FileReader();
 reader.onload = function(ev) {
-document.getElementById('pay_image_data').value = ev.target.result;
-document.getElementById('pay_img_thumb').src = ev.target.result;
-document.getElementById('pay_img_preview').style.display = 'block';
-document.getElementById('pay_clear_img').style.display = 'inline-flex';
+  compressImageBeforeSave(ev.target.result, function(compressed) {
+    document.getElementById('pay_image_data').value = compressed;
+    document.getElementById('pay_img_thumb').src = compressed;
+    document.getElementById('pay_img_preview').style.display = 'block';
+    document.getElementById('pay_clear_img').style.display = 'inline-flex';
+    const kb = (compressed.length * 0.75 / 1024).toFixed(0);
+    toast('🖼 تم ضغط الصورة: ' + kb + ' KB', 'info', 2000);
+  });
 };
 reader.readAsDataURL(file);
 }
@@ -3855,6 +3895,7 @@ const SYNC = {
   lastPullHash: '',
   isSyncing: false,
   enabled: false,
+  mode: 'both',   // 'sender' | 'receiver' | 'both'
   log: [],
 };
 
@@ -3865,6 +3906,7 @@ function syncLoadConfig() {
     SYNC.token   = cfg.token   || '';
     SYNC.gistId  = cfg.gistId  || '';
     SYNC.interval= cfg.interval|| 30000;
+    SYNC.mode    = cfg.mode    || 'both';
     SYNC.enabled = !!(SYNC.token && SYNC.gistId);
   } catch(e) {}
 }
@@ -3879,12 +3921,14 @@ function syncSaveConfig() {
     toast('⚠ التوكن غير صحيح — يجب أن يبدأ بـ ghp_ أو github_pat_', 'error'); return;
   }
 
+  const mode = document.getElementById('syncModeSelect')?.value || 'both';
   SYNC.token = token;
   SYNC.gistId = gistId;
   SYNC.enabled = true;
+  SYNC.mode = mode;
 
   localStorage.setItem('miami_sync_cfg', JSON.stringify({
-    token, gistId, interval: SYNC.interval
+    token, gistId, interval: SYNC.interval, mode
   }));
 
   syncLog('⚙️ تم حفظ الإعدادات');
@@ -3906,11 +3950,21 @@ function syncSaveConfig() {
       }
     });
   } else {
+    // تحقق من صحة Gist ID (32 حرف hex)
+    if (!/^[a-f0-9]{20,40}$/i.test(gistId)) {
+      toast('⚠ Gist ID غير صحيح — تأكد من نسخه كاملاً', 'error', 5000);
+      syncLog('❌ Gist ID غير صحيح: ' + gistId);
+      return;
+    }
     syncLog('🔗 ربط بـ Gist موجود: ' + gistId);
+    if (SYNC.mode === 'receiver') {
+      syncLog('📥 وضع المستقبل — سحب فقط');
+    }
     syncPull(false).then(() => {
       syncStartAuto();
-      syncUpdateBar('ok', 'متزامن');
-      toast('✅ تم تفعيل المزامنة', 'success');
+      const modeLabel = SYNC.mode === 'receiver' ? 'مستقبل' : SYNC.mode === 'sender' ? 'مرسل' : 'مزامنة';
+      syncUpdateBar('ok', modeLabel + ' — متصل');
+      toast('✅ تم تفعيل المزامنة (' + modeLabel + ')', 'success');
     });
   }
   syncRenderStatus();
@@ -3940,6 +3994,10 @@ async function syncCreateGist() {
 // ── رفع البيانات → GitHub ──
 async function syncPush(showToast = true) {
   if (!SYNC.token || !SYNC.gistId) return;
+  if (SYNC.mode === 'receiver') {
+    if (showToast) toast('ℹ️ وضع المستقبل — الرفع معطّل', 'info', 2000);
+    return;
+  }
   if (SYNC.isSyncing) return;
   SYNC.isSyncing = true;
   syncUpdateBar('syncing', 'جاري الرفع...');
@@ -3985,96 +4043,145 @@ async function syncPush(showToast = true) {
 }
 
 // ── سحب البيانات ← GitHub ──
-async function syncPull(showToast = true) {
+async function syncPull(showToast = true, forcePull = false) {
   if (!SYNC.token || !SYNC.gistId) return;
+  if (SYNC.mode === 'sender' && !forcePull) {
+    syncUpdateBar('ok', 'وضع المرسل');
+    return;
+  }
   syncUpdateBar('syncing', 'جاري السحب...');
 
   try {
     const res = await fetch('https://api.github.com/gists/' + SYNC.gistId + '?_=' + Date.now(), {
       headers: { Authorization: 'token ' + SYNC.token }
     });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) {
+      const errMsg = res.status === 401 ? 'HTTP 401 - التوكن غير صحيح أو منتهي الصلاحية'
+                   : res.status === 404 ? 'HTTP 404 - Gist ID غير صحيح أو محذوف'
+                   : 'HTTP ' + res.status;
+      throw new Error(errMsg);
+    }
 
     const gist = await res.json();
-    const raw  = gist.files?.['miami_data.json']?.content;
+    
+    // ── معالجة Gist المقطوع (truncated) للبيانات الكبيرة ──
+    let raw;
+    const fileInfo = gist.files?.['miami_data.json'];
+    if (!fileInfo) { syncLog('⚠️ ملف miami_data.json غير موجود في Gist'); return; }
+    if (fileInfo.truncated) {
+      syncLog('⚠️ البيانات كبيرة — جاري تحميل النسخة الكاملة...');
+      const rawRes = await fetch(fileInfo.raw_url, {
+        headers: { Authorization: 'token ' + SYNC.token }
+      });
+      raw = await rawRes.text();
+    } else {
+      raw = fileInfo.content;
+    }
     if (!raw) { syncLog('⚠️ Gist فارغ'); return; }
 
     const parsed = JSON.parse(raw);
     if (parsed._empty) { syncLog('ℹ️ Gist فارغ — لا يوجد بيانات بعد'); return; }
 
-    // تحقق من الهاش لتجنب إعادة التحميل إذا لم يتغير شيء
-    const hash = parsed._ts + '';
-    if (hash === SYNC.lastPullHash) {
+    const remoteTs = parsed._ts || 0;
+    const hash = remoteTs + '';
+
+    // تجاهل إذا لم يتغير الـ timestamp ولم يطلب سحب قسري
+    if (!forcePull && hash === SYNC.lastPullHash) {
       syncUpdateBar('ok', 'لا تحديث جديد');
       return;
     }
 
-    // تحقق إذا البيانات الخارجية أحدث
-    const remoteTs = parsed._ts || 0;
-    const localTs  = DB._lastSyncTs || 0;
+    // ── ملاحظة: تم إزالة شرط remoteTs <= localTs ──
+    // كان يمنع السحب من الأجهزة الأحدث — نعتمد الآن على updatedAt لكل عنصر
 
-    if (remoteTs > 0 && remoteTs <= localTs && SYNC.lastPullHash) {
-      syncUpdateBar('ok', 'بياناتك أحدث');
-      return;
-    }
-
-    // دمج البيانات: الأحدث يفوز لكل قسم
     if (parsed.data) {
       let merged = false;
-      Object.keys(parsed.data).forEach(sid => {
-        if (sid.startsWith('_')) return;
-        const remote = parsed.data[sid];
-        const local  = DB[sid];
-        if (!remote || typeof remote !== 'object') return;
 
-        if (!local) { DB[sid] = remote; merged = true; return; }
-
-        // دمج العناصر مع دعم updatedAt للتحديث الصحيح
-        ['invoices','payments','discounts'].forEach(key => {
-          if (!Array.isArray(remote[key])) return;
-          if (!Array.isArray(local[key])) local[key] = [];
-          remote[key].forEach(remItem => {
-            const existsIdx = local[key].findIndex(l => l.id === remItem.id);
-            if (existsIdx === -1) {
-              if (remItem.image === '§IMG§') remItem.image = null;
-              local[key].push(remItem);
-              merged = true;
-            } else {
-              const exists = local[key][existsIdx];
-              if (remItem.deleted && !exists.deleted) {
-                exists.deleted = true; merged = true;
-              }
-              if (remItem.updatedAt && (!exists.updatedAt || remItem.updatedAt > exists.updatedAt)) {
-                const savedImg = exists.image;
-                Object.assign(exists, remItem);
-                if (remItem.image === '§IMG§') exists.image = savedImg || null;
-                merged = true;
-              }
-            }
+      // ══ وضع المستقبل: المرسل هو المرجع — استبدال مباشر بدون مقارنة ══
+      if (SYNC.mode === 'receiver' || forcePull) {
+        Object.keys(parsed.data).forEach(sid => {
+          if (sid.startsWith('_')) return;
+          const remote = parsed.data[sid];
+          if (!remote || typeof remote !== 'object') return;
+          const savedImgs = {};
+          // احتفظ بالصور المحلية (مو موجودة في Gist)
+          if (DB[sid]) {
+            ['invoices','payments'].forEach(key => {
+              (DB[sid][key] || []).forEach(item => {
+                if (item.image && item.image.startsWith('data:')) savedImgs[item.id] = item.image;
+              });
+            });
+          }
+          DB[sid] = JSON.parse(JSON.stringify(remote));
+          // أعد الصور المحلية للعناصر التي صورتها §IMG§
+          ['invoices','payments'].forEach(key => {
+            (DB[sid][key] || []).forEach(item => {
+              if (item.image === '§IMG§' && savedImgs[item.id]) item.image = savedImgs[item.id];
+              else if (item.image === '§IMG§') item.image = null;
+            });
           });
+          merged = true;
         });
 
-        // دمج العملاء مع تحديث بيانات الموجودين إذا كانت البعيدة أحدث
-        if (Array.isArray(remote.clients)) {
-          remote.clients.forEach(remC => {
-            const existsIdx = local.clients.findIndex(l => l.id === remC.id);
-            if (existsIdx === -1) {
-              local.clients.push(remC); merged = true;
-            } else {
-              const exists = local.clients[existsIdx];
-              if (remC.updatedAt && (!exists.updatedAt || remC.updatedAt > exists.updatedAt)) {
-                Object.assign(exists, remC); merged = true;
-              }
-            }
-          });
-        }
-      });
+      // ══ وضع كلاهما: دمج بالـ timestamp (الأحدث يفوز) ══
+      } else {
+        Object.keys(parsed.data).forEach(sid => {
+          if (sid.startsWith('_')) return;
+          const remote = parsed.data[sid];
+          const local  = DB[sid];
+          if (!remote || typeof remote !== 'object') return;
 
+          if (!local) { DB[sid] = remote; merged = true; return; }
+
+          ['invoices','payments','discounts'].forEach(key => {
+            if (!Array.isArray(remote[key])) return;
+            if (!Array.isArray(local[key])) local[key] = [];
+            remote[key].forEach(remItem => {
+              const existsIdx = local[key].findIndex(l => l.id === remItem.id);
+              if (existsIdx === -1) {
+                if (remItem.image === '§IMG§') remItem.image = null;
+                local[key].push(remItem);
+                merged = true;
+              } else {
+                const exists = local[key][existsIdx];
+                if (remItem.deleted && !exists.deleted) {
+                  exists.deleted = true; merged = true;
+                }
+                const remTs = remItem.updatedAt || remItem.date || 0;
+                const locTs = exists.updatedAt || exists.date || 0;
+                if (remTs > locTs) {
+                  const savedImg = exists.image;
+                  Object.assign(exists, remItem);
+                  if (remItem.image === '§IMG§') exists.image = savedImg || null;
+                  merged = true;
+                }
+              }
+            });
+          });
+
+          if (Array.isArray(remote.clients)) {
+            if (!Array.isArray(local.clients)) local.clients = [];
+            remote.clients.forEach(remC => {
+              const existsIdx = local.clients.findIndex(l => l.id === remC.id);
+              if (existsIdx === -1) {
+                local.clients.push(remC); merged = true;
+              } else {
+                const exists = local.clients[existsIdx];
+                const remTs = remC.updatedAt || 0;
+                const locTs = exists.updatedAt || 0;
+                if (remTs > locTs) { Object.assign(exists, remC); merged = true; }
+              }
+            });
+          }
+        });
+      }
+
+      // دائماً احفظ الـ timestamp حتى لو لم يتغير شيء
       DB._lastSyncTs = remoteTs;
       SYNC.lastPullHash = hash;
+      saveDB(); // حفظ _lastSyncTs دائماً
 
       if (merged) {
-        saveDB();
         renderPage();
         const now = new Date().toLocaleTimeString('ar-EG');
         syncLog('⬇️ تحديث جديد من الجهاز الآخر — ' + now);
@@ -4084,12 +4191,13 @@ async function syncPull(showToast = true) {
         const now = new Date().toLocaleTimeString('ar-EG');
         syncLog('✓ لا تحديث جديد — ' + now);
         syncUpdateBar('ok', 'محدّث ' + now);
+        if (showToast) toast('✅ بياناتك محدّثة', 'info', 2000);
       }
     }
   } catch(e) {
     syncLog('❌ فشل السحب: ' + e.message);
     syncUpdateBar('error', 'فشل الاتصال');
-    if (showToast) toast('❌ فشل سحب البيانات', 'error');
+    if (showToast) toast('❌ ' + e.message, 'error', 5000);
   }
 }
 
@@ -4097,10 +4205,19 @@ async function syncPull(showToast = true) {
 function syncStartAuto() {
   clearInterval(SYNC.timer);
   if (!SYNC.enabled || !SYNC.token || !SYNC.gistId || SYNC.interval === 0) return;
-  SYNC.timer = setInterval(async () => {
-    await syncPull(false);
-  }, SYNC.interval);
-  syncLog('⏱ مزامنة تلقائية كل ' + (SYNC.interval/1000) + ' ث');
+  if (SYNC.mode === 'sender') {
+    // المرسل: رفع تلقائي فقط
+    SYNC.timer = setInterval(async () => {
+      await syncPush(false);
+    }, SYNC.interval);
+    syncLog('⏱ مرسل — رفع تلقائي كل ' + (SYNC.interval/1000) + ' ث');
+  } else {
+    // مستقبل أو كلاهما: سحب تلقائي
+    SYNC.timer = setInterval(async () => {
+      await syncPull(false);
+    }, SYNC.interval);
+    syncLog('⏱ مستقبل — سحب تلقائي كل ' + (SYNC.interval/1000) + ' ث');
+  }
 }
 
 // ── تعطيل المزامنة ──
@@ -4149,6 +4266,18 @@ function syncShowGistId() {
 }
 
 // ── تغيير فترة المزامنة ──
+function syncSetMode(val) {
+  SYNC.mode = val;
+  const cfg = JSON.parse(localStorage.getItem('miami_sync_cfg') || '{}');
+  cfg.mode = val;
+  localStorage.setItem('miami_sync_cfg', JSON.stringify(cfg));
+  clearInterval(SYNC.timer);
+  if (SYNC.enabled) syncStartAuto();
+  const labels = { sender: '📤 مرسل', receiver: '📥 مستقبل', both: '🔁 كلاهما' };
+  syncLog('🔄 تغيير الوضع إلى: ' + labels[val]);
+  toast('تم التغيير: ' + labels[val], 'info', 2000);
+}
+
 function syncSetInterval(val) {
   SYNC.interval = Number(val);
   const cfg = JSON.parse(localStorage.getItem('miami_sync_cfg') || '{}');
@@ -4202,6 +4331,8 @@ function syncRenderStatus() {
     document.getElementById('syncTokenInput').value = SYNC.token ? '●'.repeat(20) : '';
     document.getElementById('syncGistIdInput').value = SYNC.gistId;
     document.getElementById('syncIntervalSelect').value = String(SYNC.interval);
+    const modeEl = document.getElementById('syncModeSelect');
+    if (modeEl) modeEl.value = SYNC.mode || 'both';
   } else {
     box.innerHTML = `
     <div style="background:#fef3c7;border:1.5px solid #fbbf24;border-radius:10px;padding:12px 16px;font-size:13px;color:#92400e">
@@ -4332,6 +4463,8 @@ window.openBulkPaymentModal = openBulkPaymentModal;
 window.openSyncModal = openSyncModal;
 window.syncPush = syncPush;
 window.syncPull = syncPull;
+window.syncForcePull = () => syncPull(true, true);
+window.syncSetMode = syncSetMode;
 window.syncSaveConfig = syncSaveConfig;
 window.syncDisable = syncDisable;
 window.syncTestConnection = syncTestConnection;
