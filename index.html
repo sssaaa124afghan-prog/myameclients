@@ -265,6 +265,56 @@ body{background:#fff}
 /* Image Preview */
 .img-thumb{max-width:40px;max-height:40px;border-radius:6px;cursor:pointer;object-fit:cover;border:2px solid var(--primary-light)}
 .img-thumb:hover{opacity:.8}
+
+/* ── Searchable Dropdown ── */
+.select-wrap{position:relative;width:100%}
+.sdrop-trigger{width:100%;padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:13px;font-family:inherit;color:var(--gray-800);background:#fff;cursor:pointer;text-align:right;display:flex;justify-content:space-between;align-items:center;transition:.2s}
+.sdrop-trigger:hover,.sdrop-trigger.open{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,168,.12)}
+.sdrop-trigger .placeholder{color:var(--gray-400)}
+.sdrop-panel{position:absolute;top:calc(100% + 4px);right:0;left:0;background:#fff;border:1.5px solid var(--primary);border-radius:var(--radius);z-index:3000;box-shadow:0 8px 24px rgba(0,0,0,.18);display:none}
+.sdrop-panel.open{display:block}
+.sdrop-search{padding:10px 12px;border-bottom:1px solid var(--gray-100)}
+.sdrop-search input{width:100%;padding:7px 10px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;font-family:inherit;color:var(--gray-800)}
+.sdrop-search input:focus{outline:none;border-color:var(--primary)}
+.sdrop-list{max-height:220px;overflow-y:auto}
+.sdrop-item{padding:10px 14px;font-size:13px;cursor:pointer;color:var(--gray-700);transition:background .12s}
+.sdrop-item:hover{background:#eff6ff;color:var(--primary);font-weight:600}
+.sdrop-item.selected{background:var(--primary);color:#fff}
+.sdrop-no-res{padding:14px;text-align:center;color:var(--gray-400);font-size:13px}
+
+/* ── Bulk Payment ── */
+.bulk-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius);margin-bottom:8px;background:#fff;transition:.15s}
+.bulk-row.enabled{border-color:var(--success);background:#f0fdf4}
+.bulk-chk{width:18px;height:18px;cursor:pointer;accent-color:var(--success);flex-shrink:0}
+.bulk-name{flex:1;font-size:13px;font-weight:600;color:var(--gray-700)}
+.bulk-bal{font-size:11px;color:var(--gray-400);margin-top:2px}
+.bulk-amt{width:110px;padding:7px 10px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;font-family:inherit;flex-shrink:0}
+.bulk-amt:focus{outline:none;border-color:var(--success)}
+.bulk-amt:disabled{background:var(--gray-100);color:var(--gray-400)}
+
+/* ── Storage indicator ── */
+.storage-indicator{display:flex;align-items:center;gap:8px;font-size:11px;padding:6px 10px;border-radius:8px;background:var(--gray-50);border:1px solid var(--gray-200)}
+.storage-bar{flex:1;height:5px;background:var(--gray-200);border-radius:3px;overflow:hidden}
+.storage-fill{height:100%;border-radius:3px;transition:width .5s}
+
+/* ── GitHub Sync ── */
+.sync-bar{display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(255,255,255,.08);border-radius:20px;font-size:11px;color:rgba(255,255,255,.8);cursor:pointer;transition:.2s;border:1px solid rgba(255,255,255,.15)}
+.sync-bar:hover{background:rgba(255,255,255,.15)}
+.sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.sync-dot.ok{background:#22c55e;box-shadow:0 0 6px #22c55e}
+.sync-dot.syncing{background:#f59e0b;animation:syncPulse 1s infinite}
+.sync-dot.error{background:#ef4444;box-shadow:0 0 6px #ef4444}
+.sync-dot.offline{background:#94a3b8}
+@keyframes syncPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+
+.sync-setup-box{background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:16px;padding:28px;color:#fff;margin-bottom:20px}
+.sync-setup-box h3{font-size:16px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.sync-input{width:100%;padding:10px 14px;border:1.5px solid rgba(255,255,255,.2);border-radius:10px;background:rgba(255,255,255,.08);color:#fff;font-size:13px;font-family:inherit;margin-bottom:10px}
+.sync-input::placeholder{color:rgba(255,255,255,.35)}
+.sync-input:focus{outline:none;border-color:#60a5fa;background:rgba(255,255,255,.12)}
+.sync-step{display:flex;gap:10px;margin-bottom:10px;font-size:12px;color:rgba(255,255,255,.7);align-items:flex-start}
+.sync-step-num{width:20px;height:20px;border-radius:50%;background:#3b82f6;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.sync-conflict-banner{background:#fef3c7;border:1.5px solid #fbbf24;border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-start}
 </style>
 </head>
 <body>
@@ -386,14 +436,46 @@ body{background:#fff}
 <div class="modal-overlay" id="paymentModal">
 <div class="modal">
 <div class="modal-header">
-<h3>إضافة دفعة</h3>
+<h3 id="payModalTitle">إضافة دفعة</h3>
 <button class="close-btn" onclick="closeModal('paymentModal')"><i class="fa fa-times"></i></button>
 </div>
 <div class="modal-body">
 <div class="form-grid">
-<div class="form-group"><label>العميل *</label><select id="pay_client"><option value="">-- اختر --</option></select></div>
+
+<!-- العميل: بحث مباشر -->
+<div class="form-group" style="grid-column:1/-1">
+  <label>العميل * <span style="font-size:11px;color:var(--gray-400)">(ابحث بالاسم)</span></label>
+  <div style="position:relative">
+    <input id="pay_client_search" type="text" placeholder="🔍 ابحث عن العميل..." autocomplete="off"
+      oninput="payClientSearch(this.value)" onfocus="payClientSearch(this.value)"
+      style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:13px;font-family:inherit">
+    <div id="pay_client_dropdown" style="display:none;position:absolute;top:calc(100% + 3px);right:0;left:0;background:#fff;border:1.5px solid var(--primary);border-radius:var(--radius);z-index:3000;box-shadow:0 8px 24px rgba(0,0,0,.18);max-height:200px;overflow-y:auto"></div>
+  </div>
+  <input type="hidden" id="pay_client_id">
+  <div id="pay_client_selected" style="display:none;margin-top:6px;padding:6px 10px;background:#eff6ff;border-radius:8px;font-size:12px;font-weight:600;color:var(--primary);display:flex;justify-content:space-between;align-items:center">
+    <span id="pay_client_selected_name"></span>
+    <button type="button" onclick="clearPayClient()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:14px">✕</button>
+  </div>
+</div>
+
 <div class="form-group"><label>التاريخ *</label><input id="pay_date" type="date"></div>
-<div class="form-group"><label>المبلغ *</label><input id="pay_amount" type="number" placeholder="0.00"></div>
+
+<!-- العملة + المبلغ في نفس الصف -->
+<div class="form-group">
+  <label>العملة</label>
+  <select id="pay_currency" onchange="payUpdateCurrencyHint()">
+    <option value="section">عملة القسم (افتراضي)</option>
+    <option value="USD">دولار أمريكي $ → تحويل تلقائي</option>
+    <option value="AED">درهم إماراتي د.إ</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label id="pay_amount_label">المبلغ *</label>
+  <input id="pay_amount" type="number" placeholder="0.00" oninput="payUpdateCurrencyHint()">
+  <div id="pay_currency_hint" style="display:none;margin-top:4px;padding:5px 9px;background:#fef3c7;border-radius:6px;font-size:11px;font-weight:700;color:#92400e"></div>
+</div>
+
 <div class="form-group"><label>طريقة الدفع</label>
 <select id="pay_method">
 <option value="كاش">كاش</option>
@@ -404,6 +486,7 @@ body{background:#fff}
 <option value="دفع مقدم">دفع مقدم</option>
 </select>
 </div>
+
 <div class="form-group" style="grid-column:1/-1"><label>ملاحظات / بيان</label><textarea id="pay_notes" placeholder="سداد فاتورة - تسديد مستحق..."></textarea></div>
 <div class="form-group" style="grid-column:1/-1">
 <label><i class="fa fa-paperclip"></i> إرفاق صورة (إيصال / حوالة / إثبات الدفع)</label>
@@ -421,7 +504,7 @@ body{background:#fff}
 </div>
 <div class="modal-footer">
 <button class="btn btn-outline" onclick="closeModal('paymentModal')">إلغاء</button>
-<button class="btn btn-success" onclick="savePayment()"><i class="fa fa-check"></i> تسجيل الدفعة</button>
+<button class="btn btn-success" id="payModalSaveBtn" onclick="savePayment()"><i class="fa fa-check"></i> تسجيل الدفعة</button>
 </div>
 </div>
 </div>
@@ -486,6 +569,94 @@ body{background:#fff}
 </div>
 </div>
 <div class="modal-body" id="printContent"></div>
+</div>
+</div>
+
+<!-- BULK PAYMENT MODAL -->
+<div class="modal-overlay" id="bulkPaymentModal">
+<div class="modal modal-lg">
+<div class="modal-header">
+  <h3><i class="fa fa-money-bill-wave" style="color:var(--success)"></i> دفعة جماعية لعدة عملاء</h3>
+  <button class="close-btn" onclick="closeModal('bulkPaymentModal')"><i class="fa fa-times"></i></button>
+</div>
+<div class="modal-body">
+  <div class="form-grid" style="margin-bottom:16px">
+    <div class="form-group"><label>التاريخ *</label><input id="bulk_date" type="date"></div>
+    <div class="form-group"><label>طريقة الدفع</label>
+      <select id="bulk_method">
+        <option value="كاش">كاش</option><option value="تحويل بنكي">تحويل بنكي</option>
+        <option value="حوالة">حوالة</option><option value="شيك">شيك</option>
+        <option value="فيزا">فيزا</option><option value="دفع مقدم">دفع مقدم</option>
+      </select>
+    </div>
+    <div class="form-group" style="grid-column:1/-1"><label>ملاحظة عامة (اختياري)</label><input id="bulk_notes" placeholder="مثال: سداد الحصة الشهرية"></div>
+  </div>
+  <div style="background:var(--gray-50);padding:10px 14px;border-radius:var(--radius);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <span style="font-size:12px;font-weight:700;color:var(--gray-600)">اختر العملاء وأدخل المبلغ لكل منهم:</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-xs btn-outline" onclick="bulkSelectAll(true)"><i class="fa fa-check-double"></i> تحديد الكل</button>
+      <button class="btn btn-xs btn-outline" onclick="bulkSelectAll(false)"><i class="fa fa-xmark"></i> إلغاء الكل</button>
+    </div>
+  </div>
+  <div id="bulkClientsList" style="max-height:360px;overflow-y:auto;padding:2px"></div>
+  <div style="margin-top:14px;padding:12px 16px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:13px;font-weight:700;color:#15803d"><i class="fa fa-sigma"></i> إجمالي الدفعات المحددة:</span>
+    <span id="bulkTotal" style="font-size:18px;font-weight:900;color:#15803d">0.00</span>
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-outline" onclick="closeModal('bulkPaymentModal')">إلغاء</button>
+  <button class="btn btn-success" onclick="saveBulkPayment()"><i class="fa fa-check"></i> تسجيل الدفعات المحددة</button>
+</div>
+</div>
+</div>
+
+<!-- SYNC SETTINGS MODAL -->
+<div class="modal-overlay" id="syncModal">
+<div class="modal modal-lg">
+<div class="modal-header">
+  <h3><i class="fa fa-rotate" style="color:#3b82f6"></i> إعدادات المزامنة — GitHub Gist</h3>
+  <button class="close-btn" onclick="closeModal('syncModal')"><i class="fa fa-times"></i></button>
+</div>
+<div class="modal-body">
+  <div class="sync-setup-box" id="syncSetupBox">
+    <h3><i class="fa fa-github"></i> ربط البرنامج بـ GitHub Gist</h3>
+    <div style="margin-bottom:18px">
+      <div class="sync-step"><div class="sync-step-num">1</div><div>اذهب إلى <strong>github.com</strong> → اضغط على صورتك (أعلى اليمين) → <strong>Settings</strong></div></div>
+      <div class="sync-step"><div class="sync-step-num">2</div><div>من القائمة اليسرى اختر <strong>Developer settings</strong> (آخر خيار)</div></div>
+      <div class="sync-step"><div class="sync-step-num">3</div><div>اختر <strong>Personal access tokens → Tokens (classic)</strong> → اضغط <strong>Generate new token (classic)</strong></div></div>
+      <div class="sync-step"><div class="sync-step-num">4</div><div>في Note اكتب: <code style="background:rgba(255,255,255,.15);padding:2px 6px;border-radius:4px">ميامي-sync</code> — فعّل <strong>gist</strong> فقط ✓ — اضغط <strong>Generate token</strong></div></div>
+      <div class="sync-step"><div class="sync-step-num">5</div><div>انسخ الـ Token (يبدأ بـ <code style="background:rgba(255,255,255,.15);padding:2px 6px;border-radius:4px">ghp_</code>) والصقه هنا:</div></div>
+    </div>
+    <input class="sync-input" id="syncTokenInput" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <input class="sync-input" id="syncGistIdInput" placeholder="Gist ID (اتركه فارغاً لإنشاء gist جديد تلقائياً)" style="margin:0;flex:1">
+      <button class="btn btn-info btn-sm" onclick="syncShowGistId()" style="white-space:nowrap;flex-shrink:0"><i class="fa fa-eye"></i> عرض ID</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="syncSaveConfig()"><i class="fa fa-check"></i> حفظ وتفعيل المزامنة</button>
+      <button class="btn btn-outline" style="border-color:rgba(255,255,255,.3);color:#fff" onclick="syncTestConnection()"><i class="fa fa-plug"></i> اختبار الاتصال</button>
+      <button class="btn btn-danger btn-sm" onclick="syncDisable()" style="margin-right:auto"><i class="fa fa-xmark"></i> تعطيل المزامنة</button>
+    </div>
+  </div>
+  <div id="syncStatusBox" style="margin-bottom:16px"></div>
+  <div class="form-group" style="max-width:280px">
+    <label>فترة المزامنة التلقائية</label>
+    <select id="syncIntervalSelect" onchange="syncSetInterval(this.value)" style="padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:13px;font-family:inherit">
+      <option value="15000">كل 15 ثانية</option><option value="30000" selected>كل 30 ثانية</option>
+      <option value="60000">كل دقيقة</option><option value="120000">كل دقيقتين</option><option value="0">يدوي فقط</option>
+    </select>
+  </div>
+  <div style="margin-top:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--gray-600);margin-bottom:8px"><i class="fa fa-list"></i> سجل المزامنة</div>
+    <div id="syncLog" style="background:#0f172a;border-radius:10px;padding:12px;font-size:11px;font-family:monospace;color:#94a3b8;max-height:160px;overflow-y:auto;direction:ltr"></div>
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-success" onclick="syncPush(true)"><i class="fa fa-upload"></i> رفع البيانات الآن</button>
+  <button class="btn btn-info" onclick="syncPull(true)"><i class="fa fa-download"></i> سحب البيانات الآن</button>
+  <button class="btn btn-outline" onclick="closeModal('syncModal')">إغلاق</button>
+</div>
 </div>
 </div>
 
@@ -556,6 +727,7 @@ let currentSection = null;
 let currentTab = 'clients';
 let editingClientId = null;
 let editingInvoiceId = null;
+let editingPaymentId = null;
 let invItemsCount = 0;
 let autoSaveTimer = null;
 
@@ -609,23 +781,55 @@ function initDB() {
   DB._lastModified = new Date().toISOString();
   // حفظ فوري (sync) بدون timeout
   saveDBSync();
+  // Note: images loaded from IDB after initIndexedDB completes
 }
 
 // ── حفظ فوري (sync) بدون تأخير - للحالات الحرجة ──
 function saveDBSync() {
-  const data = JSON.stringify(DB);
   const timestamp = new Date();
   const formattedTime = timestamp.toLocaleString('ar-EG', {
     year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit'
   });
 
-  // 1️⃣ حفظ في localStorage الرئيسي
+  // ── إنشاء نسخة بدون الصور للتخزين في localStorage ──
+  function stripImages(obj) {
+    if (typeof obj !== 'object' || obj === null) return obj;
+    if (Array.isArray(obj)) return obj.map(stripImages);
+    const result = {};
+    for (const k in obj) {
+      if (k === 'image' && typeof obj[k] === 'string' && obj[k].startsWith('data:')) {
+        result[k] = '__img__' + obj[k].substring(0, 30); // placeholder
+      } else {
+        result[k] = stripImages(obj[k]);
+      }
+    }
+    return result;
+  }
+
+  const data = JSON.stringify(DB);
+  const dataNoImg = JSON.stringify(stripImages(DB));
+
+  // 1️⃣ حفظ في localStorage الرئيسي (بدون صور لتوفير المساحة)
   try {
-    localStorage.setItem('jalabiya_miami_db', data);
+    localStorage.setItem('jalabiya_miami_db', dataNoImg);
+    // حفظ الصور منفصلة في IndexedDB
+    _saveImagesToIDB();
   } catch(e) {
-    console.error('❌ خطأ في الحفظ الرئيسي:', e);
-    toast('تحذير: مساحة التخزين ممتلئة!', 'warning');
+    // محاولة الحفظ الكامل إن فشل الجزئي
+    try {
+      localStorage.setItem('jalabiya_miami_db', data);
+    } catch(e2) {
+      console.error('❌ خطأ في الحفظ الرئيسي:', e2);
+      // تنظيف النسخ القديمة وإعادة المحاولة
+      try {
+        localStorage.removeItem('jalabiya_snaps');
+        localStorage.setItem('jalabiya_miami_db', dataNoImg);
+        toast('⚠ تم تنظيف النسخ القديمة لتوفير مساحة', 'warning');
+      } catch(e3) {
+        toast('❌ مساحة التخزين ممتلئة! صدّر نسخة احتياطية وأعد تشغيل البرنامج', 'error');
+      }
+    }
   }
 
   // 2️⃣ نسخة احتياطية في sessionStorage (تحمي من إغلاق الصفحة)
@@ -662,19 +866,29 @@ function saveDB() {
   clearTimeout(autoSaveTimer);
   // حفظ فوري في sessionStorage لحماية البيانات
   try { sessionStorage.setItem('jalabiya_miami_db_bk', JSON.stringify(DB)); } catch(e) {}
-  // حفظ مؤجل في localStorage (debounce 300ms)
-  autoSaveTimer = setTimeout(() => { saveDBSync(); }, 300);
+  // حفظ مؤجل في localStorage (debounce 300ms) + رفع للـ Gist
+  autoSaveTimer = setTimeout(() => {
+    saveDBSync();
+    if (SYNC.enabled && SYNC.token && SYNC.gistId) {
+      syncPush(false); // رفع تلقائي بعد كل حفظ
+    }
+  }, 500);
 }
 
 function updateSaveIndicator(time) {
 const el = document.getElementById('saveIndicator');
 if (el) {
-el.innerHTML = `<span class="activity-dot"></span> آخر حفظ: ${time}`;
+const info = getStorageInfo();
+const fillColor = info.pct > 80 ? '#dc2626' : info.pct > 60 ? '#d97706' : '#22c55e';
+el.innerHTML = `<span class="activity-dot"></span> آخر حفظ: ${time} <span style="font-size:10px;opacity:.6;margin-right:6px">| تخزين: ${info.pct}%</span>`;
 el.style.color = '#22c55e';
 clearTimeout(el._fadeTimer);
 el._fadeTimer = setTimeout(() => { 
 el.style.color = '#94a3b8'; 
 }, 3000);
+if (info.pct > 85) {
+  toast(`⚠ مساحة التخزين ${info.pct}% — يُنصح بتصدير نسخة احتياطية`, 'warning', 5000);
+}
 }
 }
 
@@ -694,6 +908,11 @@ function initIndexedDB() {
       // عند بدء التشغيل، حاول استعادة من IndexedDB لو localStorage فارغ
       if (!localStorage.getItem('jalabiya_miami_db')) {
         restoreFromIndexedDB();
+      } else {
+        // استعادة الصور من IndexedDB
+        _loadImagesFromIDB(() => {
+          console.log('🖼️ تم تحميل الصور من IndexedDB');
+        });
       }
     };
   } catch(e) { console.warn('IndexedDB غير متاح:', e); }
@@ -1082,6 +1301,8 @@ document.getElementById('pay_image_file').value = '';
 ════════════════════════════════════════════════════ */
 
 function renderDashboard() {
+const syncStatus = SYNC.enabled ? 'ok' : 'offline';
+const syncLabel = SYNC.enabled ? 'متزامن' : 'غير مفعّل';
 document.getElementById('headerActions').innerHTML = `
 <button class="btn btn-outline" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.3)" onclick="exportData()">
 <i class="fa fa-download"></i> JSON
@@ -1103,6 +1324,11 @@ document.getElementById('headerActions').innerHTML = `
 <i class="fa fa-file-excel"></i> استيراد Excel
 <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importFromExcel(event)">
 </label>
+<div id="syncStatusBar" class="sync-bar" onclick="openSyncModal()" title="إعدادات المزامنة">
+  <div class="sync-dot ${syncStatus}"></div>
+  <i class="fa fa-rotate" style="font-size:11px"></i>
+  <span class="sync-label">${syncLabel}</span>
+</div>
 <span id="saveIndicator" style="font-size:11px;color:#94a3b8;padding:0 6px">
 <span class="activity-dot"></span> حفظ تلقائي
 </span>
@@ -1239,8 +1465,15 @@ const sec = SECTIONS[currentSection];
 const isSupplier = sec.type === 'supplier';
 const clientLabel = isSupplier ? 'العميل' : 'الحساب';
 
+const syncStatusSec = SYNC.enabled ? 'ok' : 'offline';
+const syncLabelSec = SYNC.enabled ? 'متزامن' : 'غير مفعّل';
 document.getElementById('headerActions').innerHTML = `
 <button class="back-btn" onclick="goHome()"><i class="fa fa-arrow-right"></i> الرئيسية</button>
+<div id="syncStatusBar" class="sync-bar" onclick="openSyncModal()" title="المزامنة" style="margin-right:8px">
+  <div class="sync-dot ${syncStatusSec}"></div>
+  <i class="fa fa-rotate" style="font-size:11px"></i>
+  <span class="sync-label">${syncLabelSec}</span>
+</div>
 `;
 
 const tabs = [
@@ -1326,10 +1559,11 @@ const html = `
 <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px">
   <div class="form-group" style="flex:1;min-width:220px;margin:0">
     <label style="font-size:12px;font-weight:600;color:var(--gray-600)">اختر عميل واحد</label>
-    <select id="stmtClientSelect" onchange="renderClientStatement(this.value)" style="padding:10px;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:14px;width:100%">
+    <select id="stmtClientSelect" onchange="renderClientStatement(this.value)" style="padding:10px;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:14px;width:100%;display:none">
       <option value="">-- اختر عميل --</option>
       ${sec.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
     </select>
+    <div id="stmtClientSdropContainer"></div>
   </div>
   <button class="btn btn-primary" onclick="renderAllClientsStatement()" style="white-space:nowrap;height:42px">
     <i class="fa fa-users"></i> كشف جميع العملاء
@@ -1345,6 +1579,20 @@ const html = `
 `;
 
 document.getElementById('tabContent').innerHTML = html;
+
+// Upgrade statement client select to searchable
+setTimeout(() => {
+  const sec2 = DB[currentSection];
+  if (!sec2) return;
+  const container = document.getElementById('stmtClientSdropContainer');
+  if (!container) return;
+  const opts = sec2.clients.map(c => ({ value: c.id, label: c.name }));
+  const sdrop = createSearchableSelect(opts, '-- ابحث عن عميل --', '', (val) => {
+    document.getElementById('stmtClientSelect').value = val;
+    renderClientStatement(val);
+  });
+  container.appendChild(sdrop);
+}, 50);
 }
 
 function renderAllClientsStatement() {
@@ -1614,7 +1862,13 @@ renderTab();
 setTimeout(() => {
 document.getElementById('stmtClientSelect').value = clientId;
 renderClientStatement(clientId);
-}, 100);
+// also set searchable select if present
+const sdropContainer = document.getElementById('stmtClientSdropContainer');
+if (sdropContainer) {
+  const sdropEl = sdropContainer.querySelector('[id$="_val"]');
+  // trigger re-render of statement tab with this client
+}
+}, 150);
 }
 
 function renderClientStatement(clientId) {
@@ -2295,12 +2549,18 @@ const clientSel = document.getElementById('inv_client');
 clientSel.innerHTML = '<option value="">-- اختر العميل --</option>' +
 sec.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 
+// Upgrade to searchable
+const existSdrop = document.getElementById('inv_client_sdrop');
+if (existSdrop) existSdrop.remove();
+const invSdrop = upgradeSelect(clientSel, ()=>{});
+invSdrop.id = 'inv_client_sdrop';
+
 if (invId) {
 const inv = sec.invoices.find(i => i.id === invId);
 if (inv) {
 document.getElementById('inv_num').value = inv.num;
 document.getElementById('inv_date').value = inv.date;
-document.getElementById('inv_client').value = inv.clientId;
+document.getElementById('inv_client').value = inv.clientId; const isd = document.getElementById('inv_client_sdrop'); if(isd) isd.setValue(inv.clientId);
 document.getElementById('inv_discount').value = inv.discount || 0;
 document.getElementById('inv_notes').value = inv.notes || '';
 if (inv.image) {
@@ -2316,7 +2576,7 @@ inv.items.forEach(item => addInvItem(item));
 } else {
 document.getElementById('inv_num').value = getNextInvNum();
 document.getElementById('inv_date').value = today();
-if (clientId) document.getElementById('inv_client').value = clientId;
+if (clientId) { document.getElementById('inv_client').value = clientId; const isd2 = document.getElementById('inv_client_sdrop'); if(isd2) isd2.setValue(clientId); }
 document.getElementById('inv_discount').value = 0;
 document.getElementById('inv_notes').value = '';
 clearInvImage();
@@ -2383,7 +2643,7 @@ document.getElementById('inv_total').textContent = fmtNum(Math.max(0, subtotal -
 }
 
 function saveInvoice() {
-const clientId = document.getElementById('inv_client').value;
+const invSD = document.getElementById('inv_client_sdrop'); const clientId = invSD ? invSD.getValue() : document.getElementById('inv_client').value;
 const date = document.getElementById('inv_date').value;
 if (!clientId || !date) { 
 toast('⚠ العميل والتاريخ مطلوبان', 'error'); 
@@ -2563,6 +2823,9 @@ const html = `
 <button class="btn btn-success" onclick="openPaymentModal()">
 <i class="fa fa-plus"></i> دفعة جديدة
 </button>
+<button class="btn btn-info" onclick="openBulkPaymentModal()" title="تسجيل دفعات لأكثر من عميل دفعة واحدة">
+<i class="fa fa-layer-group"></i> دفعة جماعية
+</button>
 </div>
 
 <div class="card" style="padding:0;overflow:hidden">
@@ -2592,6 +2855,12 @@ return `<tr>
 <td>${pay.image ? imgThumb(pay.image) : '<span style="color:var(--gray-300);font-size:11px">—</span>'}</td>
 <td>
 <div style="display:flex;gap:5px">
+<button class="btn btn-xs btn-info btn-icon" title="كشف الحساب" onclick="viewClientStatement('${pay.clientId}')">
+<i class="fa fa-file-lines"></i>
+</button>
+<button class="btn btn-xs btn-outline btn-icon" title="تعديل" onclick="editPayment('${pay.id}')">
+<i class="fa fa-pen"></i>
+</button>
 <button class="btn btn-xs btn-danger btn-icon" title="حذف" onclick="deletePayment('${pay.id}')">
 <i class="fa fa-trash"></i>
 </button>
@@ -2639,6 +2908,12 @@ return `<tr>
 <td>${pay.image ? imgThumb(pay.image) : '<span style="color:var(--gray-300);font-size:11px">—</span>'}</td>
 <td>
 <div style="display:flex;gap:5px">
+<button class="btn btn-xs btn-info btn-icon" title="كشف الحساب" onclick="viewClientStatement('${pay.clientId}')">
+<i class="fa fa-file-lines"></i>
+</button>
+<button class="btn btn-xs btn-outline btn-icon" title="تعديل" onclick="editPayment('${pay.id}')">
+<i class="fa fa-pen"></i>
+</button>
 <button class="btn btn-xs btn-danger btn-icon" onclick="deletePayment('${pay.id}')">
 <i class="fa fa-trash"></i>
 </button>
@@ -2648,48 +2923,196 @@ return `<tr>
 }).join('');
 }
 
-function openPaymentModal(clientId) {
-const sec = DB[currentSection];
-const clientSel = document.getElementById('pay_client');
-clientSel.innerHTML = '<option value="">-- اختر --</option>' +
-sec.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+/* ── مساعد بحث العميل في نافذة الدفعة ── */
+function payClientSearch(q) {
+  const sec = DB[currentSection];
+  const s = SECTIONS[currentSection];
+  const dropdown = document.getElementById('pay_client_dropdown');
+  if (!dropdown) return;
 
-document.getElementById('pay_date').value = today();
-if (clientId) document.getElementById('pay_client').value = clientId;
-document.getElementById('pay_amount').value = '';
-document.getElementById('pay_method').value = 'كاش';
-document.getElementById('pay_notes').value = '';
-clearPayImage();
+  const filtered = q.trim()
+    ? sec.clients.filter(c => c.name.toLowerCase().includes(q.toLowerCase()) || (c.phone||'').includes(q) || (c.city||'').toLowerCase().includes(q.toLowerCase()))
+    : sec.clients;
 
-openModal('paymentModal');
+  if (!filtered.length) {
+    dropdown.innerHTML = '<div style="padding:12px;text-align:center;color:var(--gray-400);font-size:12px">لا توجد نتائج</div>';
+    dropdown.style.display = 'block';
+    return;
+  }
+
+  dropdown.innerHTML = filtered.map(c => {
+    const bal = getClientBalance(currentSection, c.id);
+    const balColor = bal > 0.01 ? '#dc2626' : bal < -0.01 ? '#16a34a' : '#94a3b8';
+    const balText = bal > 0.01 ? `مدين: ${fmtNum(bal)}` : bal < -0.01 ? `دائن: ${fmtNum(Math.abs(bal))}` : 'مسوّى';
+    return `<div onclick="paySelectClient('${c.id}','${c.name.replace(/'/g,"&#39;")}')"
+      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--gray-100);transition:background .1s"
+      onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">
+      <div style="font-size:13px;font-weight:600;color:var(--gray-800)">${c.name}</div>
+      <div style="font-size:11px;color:${balColor};margin-top:2px">${balText} ${s.curSymbol}${c.city?' · '+c.city:''}</div>
+    </div>`;
+  }).join('');
+  dropdown.style.display = 'block';
+}
+
+function paySelectClient(id, name) {
+  document.getElementById('pay_client_id').value = id;
+  document.getElementById('pay_client_search').value = '';
+  document.getElementById('pay_client_search').placeholder = '🔍 ابحث عن العميل...';
+  document.getElementById('pay_client_dropdown').style.display = 'none';
+  const sel = document.getElementById('pay_client_selected');
+  sel.style.display = 'flex';
+  document.getElementById('pay_client_selected_name').textContent = name;
+  payUpdateCurrencyHint();
+}
+
+function clearPayClient() {
+  document.getElementById('pay_client_id').value = '';
+  document.getElementById('pay_client_search').value = '';
+  document.getElementById('pay_client_selected').style.display = 'none';
+  document.getElementById('pay_client_search').focus();
+}
+
+function payUpdateCurrencyHint() {
+  const cur = document.getElementById('pay_currency')?.value;
+  const amt = Number(document.getElementById('pay_amount')?.value || 0);
+  const hint = document.getElementById('pay_currency_hint');
+  const s = currentSection ? SECTIONS[currentSection] : null;
+  if (!hint) return;
+
+  if (cur === 'USD' && amt > 0) {
+    const aed = (amt * 3.67).toFixed(2);
+    hint.textContent = `= ${fmtNum(parseFloat(aed))} د.إ (سعر صرف: 1$ = 3.67 د.إ)`;
+    hint.style.display = 'block';
+  } else if (cur === 'USD') {
+    hint.textContent = 'سيتم تحويل الدولار تلقائياً × 3.67 عند الحفظ';
+    hint.style.display = 'block';
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
+function openPaymentModal(clientId, payId) {
+  editingPaymentId = payId || null;
+  const sec = DB[currentSection];
+  const s = SECTIONS[currentSection];
+
+  // Reset client search UI
+  document.getElementById('pay_client_id').value = '';
+  document.getElementById('pay_client_search').value = '';
+  document.getElementById('pay_client_selected').style.display = 'none';
+  document.getElementById('pay_client_dropdown').style.display = 'none';
+
+  // Reset currency
+  document.getElementById('pay_currency').value = 'section';
+  document.getElementById('pay_currency_hint').style.display = 'none';
+
+  if (payId) {
+    const pay = sec.payments.find(p => p.id === payId);
+    if (pay) {
+      document.getElementById('payModalTitle').textContent = 'تعديل الدفعة';
+      document.getElementById('payModalSaveBtn').innerHTML = '<i class="fa fa-save"></i> حفظ التعديل';
+
+      // Set client
+      const client = sec.clients.find(c => c.id === pay.clientId);
+      if (client) paySelectClient(client.id, client.name);
+
+      document.getElementById('pay_date').value = pay.date;
+      document.getElementById('pay_amount').value = pay.amount;
+      document.getElementById('pay_method').value = pay.method || 'كاش';
+      document.getElementById('pay_notes').value = pay.notes || '';
+
+      if (pay.image) {
+        document.getElementById('pay_image_data').value = pay.image;
+        document.getElementById('pay_img_thumb').src = pay.image;
+        document.getElementById('pay_img_preview').style.display = 'block';
+        document.getElementById('pay_clear_img').style.display = 'inline-flex';
+      } else { clearPayImage(); }
+    }
+  } else {
+    document.getElementById('payModalTitle').textContent = 'إضافة دفعة';
+    document.getElementById('payModalSaveBtn').innerHTML = '<i class="fa fa-check"></i> تسجيل الدفعة';
+    document.getElementById('pay_date').value = today();
+    document.getElementById('pay_amount').value = '';
+    document.getElementById('pay_method').value = 'كاش';
+    document.getElementById('pay_notes').value = '';
+    clearPayImage();
+
+    if (clientId) {
+      const client = sec.clients.find(c => c.id === clientId);
+      if (client) paySelectClient(client.id, client.name);
+    }
+  }
+
+  // Close dropdown when clicking outside modal
+  setTimeout(() => {
+    document.addEventListener('click', _closePayDropdown);
+  }, 100);
+
+  openModal('paymentModal');
+}
+
+function _closePayDropdown(e) {
+  const dd = document.getElementById('pay_client_dropdown');
+  const inp = document.getElementById('pay_client_search');
+  if (dd && inp && !dd.contains(e.target) && e.target !== inp) {
+    dd.style.display = 'none';
+  }
 }
 
 function savePayment() {
-const clientId = document.getElementById('pay_client').value;
-const date = document.getElementById('pay_date').value;
-const amount = Number(document.getElementById('pay_amount').value);
+  // ── قراءة العميل من hidden input مباشرة (لا sdrop) ──
+  const clientId = document.getElementById('pay_client_id').value;
+  const date = document.getElementById('pay_date').value;
+  const rawAmount = Number(document.getElementById('pay_amount').value);
+  const currency = document.getElementById('pay_currency').value;
 
-if (!clientId || !date || amount <= 0) {
-toast('⚠ جميع الحقول مطلوبة والمبلغ يجب أن يكون أكبر من صفر', 'error');
-return;
-}
+  if (!clientId || !date || rawAmount <= 0) {
+    toast('⚠ اختر العميل وأدخل التاريخ والمبلغ', 'error');
+    return;
+  }
 
-const data = {
-id: uid(),
-clientId,
-date,
-amount,
-method: document.getElementById('pay_method').value,
-notes: document.getElementById('pay_notes').value.trim(),
-image: document.getElementById('pay_image_data').value || null,
-deleted: false
-};
+  // ── تحويل العملة تلقائياً ──
+  const USD_RATE = 3.67;
+  let finalAmount = rawAmount;
+  let currencyNote = '';
+  if (currency === 'USD') {
+    finalAmount = parseFloat((rawAmount * USD_RATE).toFixed(2));
+    currencyNote = ` [${fmtNum(rawAmount)}$ × ${USD_RATE} = ${fmtNum(finalAmount)} د.إ]`;
+  }
 
-DB[currentSection].payments.push(data);
-saveDB();
-closeModal('paymentModal');
-renderPaymentsTab();
-toast('✅ تم تسجيل الدفعة بنجاح', 'success');
+  const sec = DB[currentSection];
+  const notesVal = (document.getElementById('pay_notes').value.trim()) + currencyNote;
+
+  if (editingPaymentId) {
+    const idx = sec.payments.findIndex(p => p.id === editingPaymentId);
+    if (idx >= 0) {
+      sec.payments[idx] = {
+        ...sec.payments[idx],
+        clientId, date,
+        amount: finalAmount,
+        method: document.getElementById('pay_method').value,
+        notes: notesVal,
+        image: document.getElementById('pay_image_data').value || sec.payments[idx].image || null
+      };
+      toast('✅ تم تعديل الدفعة بنجاح', 'success');
+    }
+    editingPaymentId = null;
+  } else {
+    sec.payments.push({
+      id: uid(), clientId, date,
+      amount: finalAmount,
+      method: document.getElementById('pay_method').value,
+      notes: notesVal,
+      image: document.getElementById('pay_image_data').value || null,
+      deleted: false
+    });
+    toast('✅ تم تسجيل الدفعة بنجاح', 'success');
+  }
+
+  document.removeEventListener('click', _closePayDropdown);
+  saveDB();
+  closeModal('paymentModal');
+  renderPaymentsTab();
 }
 
 function deletePayment(id) {
@@ -2700,6 +3123,10 @@ if (idx >= 0) sec.payments[idx].deleted = true;
 saveDB();
 renderPaymentsTab();
 toast('تم حذف الدفعة', 'info');
+}
+
+function editPayment(id) {
+openPaymentModal(null, id);
 }
 
 /* ════════════════════════════════════════════════════
@@ -2763,8 +3190,14 @@ const clientSel = document.getElementById('disc_client');
 clientSel.innerHTML = '<option value="">-- اختر --</option>' +
 sec.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 
+// Upgrade to searchable
+const existD = document.getElementById('disc_client_sdrop');
+if (existD) existD.remove();
+const discSdrop = upgradeSelect(clientSel, ()=>{});
+discSdrop.id = 'disc_client_sdrop';
+
 document.getElementById('disc_date').value = today();
-if (clientId) document.getElementById('disc_client').value = clientId;
+if (clientId) { document.getElementById('disc_client').value = clientId; discSdrop.setValue(clientId); }
 document.getElementById('disc_type').value = 'fixed';
 document.getElementById('disc_value').value = '';
 document.getElementById('disc_reason').value = '';
@@ -2773,7 +3206,7 @@ openModal('discountModal');
 }
 
 function saveDiscount() {
-const clientId = document.getElementById('disc_client').value;
+const dSD = document.getElementById('disc_client_sdrop'); const clientId = dSD ? dSD.getValue() : document.getElementById('disc_client').value;
 const date = document.getElementById('disc_date').value;
 const value = Number(document.getElementById('disc_value').value);
 
@@ -2815,12 +3248,676 @@ toast('تم حذف الخصم', 'info');
 🚀 INITIALIZATION
 ════════════════════════════════════════════════════ */
 
+
+
+// ── حفظ الصور في IndexedDB بشكل منفصل ──
+function _saveImagesToIDB() {
+  if (!_idb) return;
+  try {
+    const imgs = {};
+    Object.keys(DB).forEach(sid => {
+      const sec = DB[sid];
+      if (!sec || typeof sec !== 'object') return;
+      ['invoices','payments'].forEach(key => {
+        if (!Array.isArray(sec[key])) return;
+        sec[key].forEach(item => {
+          if (item.image && item.image.startsWith('data:')) {
+            imgs[item.id] = item.image;
+          }
+        });
+      });
+    });
+    const tx = _idb.transaction('backups', 'readwrite');
+    tx.objectStore('backups').put({ id: 'images', data: JSON.stringify(imgs), ts: Date.now() });
+  } catch(e) {}
+}
+
+// ── استعادة الصور من IndexedDB ──
+function _loadImagesFromIDB(callback) {
+  if (!_idb) { if(callback) callback(); return; }
+  try {
+    const tx = _idb.transaction('backups', 'readonly');
+    const req = tx.objectStore('backups').get('images');
+    req.onsuccess = e => {
+      if (e.target.result?.data) {
+        try {
+          const imgs = JSON.parse(e.target.result.data);
+          Object.keys(DB).forEach(sid => {
+            const sec = DB[sid];
+            if (!sec || typeof sec !== 'object') return;
+            ['invoices','payments'].forEach(key => {
+              if (!Array.isArray(sec[key])) return;
+              sec[key].forEach(item => {
+                if (imgs[item.id]) item.image = imgs[item.id];
+              });
+            });
+          });
+        } catch(e2) {}
+      }
+      if(callback) callback();
+    };
+    req.onerror = () => { if(callback) callback(); };
+  } catch(e) { if(callback) callback(); }
+}
+
+// ── قياس مساحة التخزين ──
+function getStorageInfo() {
+  let used = 0;
+  try {
+    for (const k in localStorage) {
+      if (localStorage.hasOwnProperty(k)) used += (localStorage[k].length + k.length) * 2;
+    }
+  } catch(e) {}
+  const usedKB = (used / 1024).toFixed(1);
+  const totalKB = 5120; // 5MB approx
+  const pct = Math.min(100, Math.round(used / (totalKB * 1024) * 100));
+  return { usedKB, totalKB, pct };
+}
+
+/* ════════════════════════════════════════════════════
+💰 BULK PAYMENT - دفعات جماعية
+════════════════════════════════════════════════════ */
+
+function openBulkPaymentModal() {
+  const sec = DB[currentSection];
+  const s = SECTIONS[currentSection];
+  document.getElementById('bulk_date').value = today();
+  document.getElementById('bulk_method').value = 'كاش';
+  document.getElementById('bulk_notes').value = '';
+
+  const list = document.getElementById('bulkClientsList');
+  list.innerHTML = sec.clients.map(c => {
+    const bal = getClientBalance(currentSection, c.id);
+    const balText = bal > 0.01 ? `<span style="color:#dc2626">مدين: ${fmtNum(bal)} ${s.curSymbol}</span>` :
+                    bal < -0.01 ? `<span style="color:#16a34a">دائن: ${fmtNum(Math.abs(bal))} ${s.curSymbol}</span>` :
+                    `<span style="color:#94a3b8">مسوّى</span>`;
+    return `<div class="bulk-row" id="bulk_row_${c.id}">
+      <input type="checkbox" class="bulk-chk" id="bulk_chk_${c.id}" onchange="bulkRowToggle('${c.id}')">
+      <div style="flex:1;min-width:0">
+        <div class="bulk-name">${c.name}</div>
+        <div class="bulk-bal">${balText}</div>
+      </div>
+      <input type="number" class="bulk-amt" id="bulk_amt_${c.id}" placeholder="0.00" min="0" step="0.01"
+        disabled oninput="updateBulkTotal()" style="direction:ltr">
+    </div>`;
+  }).join('');
+
+  document.getElementById('bulkTotal').textContent = '0.00';
+  openModal('bulkPaymentModal');
+}
+
+function bulkRowToggle(clientId) {
+  const chk = document.getElementById('bulk_chk_' + clientId);
+  const amt = document.getElementById('bulk_amt_' + clientId);
+  const row = document.getElementById('bulk_row_' + clientId);
+  amt.disabled = !chk.checked;
+  row.classList.toggle('enabled', chk.checked);
+  if (chk.checked) { amt.focus(); }
+  updateBulkTotal();
+}
+
+function bulkSelectAll(val) {
+  const sec = DB[currentSection];
+  sec.clients.forEach(c => {
+    const chk = document.getElementById('bulk_chk_' + c.id);
+    if (!chk) return;
+    chk.checked = val;
+    bulkRowToggle(c.id);
+  });
+}
+
+function updateBulkTotal() {
+  const sec = DB[currentSection];
+  const s = SECTIONS[currentSection];
+  let total = 0;
+  sec.clients.forEach(c => {
+    const chk = document.getElementById('bulk_chk_' + c.id);
+    if (chk?.checked) {
+      total += Number(document.getElementById('bulk_amt_' + c.id)?.value || 0);
+    }
+  });
+  document.getElementById('bulkTotal').textContent = fmtNum(total) + ' ' + s.curSymbol;
+}
+
+function saveBulkPayment() {
+  const sec = DB[currentSection];
+  const date = document.getElementById('bulk_date').value;
+  const method = document.getElementById('bulk_method').value;
+  const notes = document.getElementById('bulk_notes').value.trim();
+
+  if (!date) { toast('⚠ التاريخ مطلوب', 'error'); return; }
+
+  let count = 0;
+  sec.clients.forEach(c => {
+    const chk = document.getElementById('bulk_chk_' + c.id);
+    if (!chk?.checked) return;
+    const amount = Number(document.getElementById('bulk_amt_' + c.id)?.value || 0);
+    if (amount <= 0) return;
+
+    sec.payments.push({
+      id: uid(), clientId: c.id, date, amount, method,
+      notes: notes || 'دفعة جماعية', image: null, deleted: false
+    });
+    count++;
+  });
+
+  if (count === 0) { toast('⚠ لم تُحدَّد أي دفعة بمبلغ أكبر من صفر', 'warning'); return; }
+
+  saveDB();
+  closeModal('bulkPaymentModal');
+  renderPaymentsTab();
+  toast(`✅ تم تسجيل ${count} دفعة بنجاح`, 'success');
+}
+
+/* ════════════════════════════════════════════════════
+🔍 SEARCHABLE DROPDOWN - قائمة منسدلة مع بحث
+════════════════════════════════════════════════════ */
+
+function createSearchableSelect(options, placeholderText, selectedVal, onChange) {
+  const wrapperId = 'sdrop_' + Math.random().toString(36).substr(2, 6);
+  let currentSelected = selectedVal || '';
+  let isOpen = false;
+
+  const getLabel = (val) => {
+    if (!val) return '';
+    const opt = options.find(o => o.value === val);
+    return opt ? opt.label : '';
+  };
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'select-wrap';
+  wrapper.style.width = '100%';
+
+  wrapper.innerHTML = `
+    <div class="sdrop-trigger" id="${wrapperId}_trigger">
+      <span id="${wrapperId}_label" class="${currentSelected ? '' : 'placeholder'}">${currentSelected ? getLabel(currentSelected) : placeholderText}</span>
+      <i class="fa fa-chevron-down" style="font-size:11px;color:var(--gray-400)"></i>
+    </div>
+    <div class="sdrop-panel" id="${wrapperId}_panel">
+      <div class="sdrop-search">
+        <input type="text" placeholder="🔍 ابحث..." id="${wrapperId}_search" autocomplete="off">
+      </div>
+      <div class="sdrop-list" id="${wrapperId}_list"></div>
+    </div>
+    <input type="hidden" id="${wrapperId}_val" value="${currentSelected}">
+  `;
+
+  const renderList = (filter) => {
+    const list = wrapper.querySelector(`#${wrapperId}_list`);
+    const filtered = filter
+      ? options.filter(o => o.label.toLowerCase().includes(filter.toLowerCase()))
+      : options;
+
+    if (!filtered.length) {
+      list.innerHTML = '<div class="sdrop-no-res">لا توجد نتائج</div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(o => `
+      <div class="sdrop-item ${o.value === currentSelected ? 'selected' : ''}"
+           data-val="${o.value}" data-label="${o.label}">
+        ${o.label}
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.sdrop-item').forEach(el => {
+      el.addEventListener('click', () => {
+        currentSelected = el.dataset.val;
+        wrapper.querySelector(`#${wrapperId}_val`).value = currentSelected;
+        wrapper.querySelector(`#${wrapperId}_label`).textContent = el.dataset.label;
+        wrapper.querySelector(`#${wrapperId}_label`).classList.remove('placeholder');
+        closeDropdown();
+        if (onChange) onChange(currentSelected);
+      });
+    });
+  };
+
+  const openDropdown = () => {
+    wrapper.querySelector(`#${wrapperId}_panel`).classList.add('open');
+    wrapper.querySelector(`#${wrapperId}_trigger`).classList.add('open');
+    wrapper.querySelector(`#${wrapperId}_search`).value = '';
+    renderList('');
+    wrapper.querySelector(`#${wrapperId}_search`).focus();
+    isOpen = true;
+  };
+
+  const closeDropdown = () => {
+    wrapper.querySelector(`#${wrapperId}_panel`).classList.remove('open');
+    wrapper.querySelector(`#${wrapperId}_trigger`).classList.remove('open');
+    isOpen = false;
+  };
+
+  wrapper.querySelector(`#${wrapperId}_trigger`).addEventListener('click', (e) => {
+    e.stopPropagation();
+    isOpen ? closeDropdown() : openDropdown();
+  });
+
+  wrapper.querySelector(`#${wrapperId}_search`).addEventListener('input', (e) => {
+    renderList(e.target.value);
+  });
+
+  wrapper.querySelector(`#${wrapperId}_search`).addEventListener('click', e => e.stopPropagation());
+  wrapper.querySelector(`#${wrapperId}_panel`).addEventListener('click', e => e.stopPropagation());
+
+  document.addEventListener('click', closeDropdown);
+
+  wrapper.getValue = () => wrapper.querySelector(`#${wrapperId}_val`).value;
+  wrapper.setValue = (val) => {
+    currentSelected = val;
+    wrapper.querySelector(`#${wrapperId}_val`).value = val;
+    const label = getLabel(val);
+    const lbl = wrapper.querySelector(`#${wrapperId}_label`);
+    lbl.textContent = label || placeholderText;
+    lbl.classList.toggle('placeholder', !label);
+  };
+
+  return wrapper;
+}
+
+// Helper: replace a select element with searchable version
+function upgradeSelect(selectEl, onChange) {
+  if (!selectEl) return null;
+  const options = Array.from(selectEl.options)
+    .filter(o => o.value !== '')
+    .map(o => ({ value: o.value, label: o.text }));
+  const placeholder = selectEl.options[0]?.text || '-- اختر --';
+  const selected = selectEl.value || '';
+  const wrap = createSearchableSelect(options, placeholder, selected, onChange);
+  wrap.id = selectEl.id + '_sdrop';
+  selectEl.style.display = 'none';
+  selectEl.parentNode.insertBefore(wrap, selectEl.nextSibling);
+  return wrap;
+}
+
+
+/* ════════════════════════════════════════════════════════
+🔄 GITHUB GIST SYNC ENGINE - محرك المزامنة
+════════════════════════════════════════════════════════ */
+
+const SYNC = {
+  token: '',
+  gistId: '',
+  interval: 30000,
+  timer: null,
+  lastPullHash: '',
+  isSyncing: false,
+  enabled: false,
+  log: [],
+};
+
+// ── تحميل الإعدادات ──
+function syncLoadConfig() {
+  try {
+    const cfg = JSON.parse(localStorage.getItem('miami_sync_cfg') || '{}');
+    SYNC.token   = cfg.token   || '';
+    SYNC.gistId  = cfg.gistId  || '';
+    SYNC.interval= cfg.interval|| 30000;
+    SYNC.enabled = !!(SYNC.token && SYNC.gistId);
+  } catch(e) {}
+}
+
+// ── حفظ الإعدادات ──
+function syncSaveConfig() {
+  const token  = document.getElementById('syncTokenInput').value.trim();
+  const gistId = document.getElementById('syncGistIdInput').value.trim();
+
+  if (!token) { toast('⚠ أدخل الـ Token أولاً', 'error'); return; }
+  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+    toast('⚠ التوكن غير صحيح — يجب أن يبدأ بـ ghp_ أو github_pat_', 'error'); return;
+  }
+
+  SYNC.token = token;
+  SYNC.gistId = gistId;
+  SYNC.enabled = true;
+
+  localStorage.setItem('miami_sync_cfg', JSON.stringify({
+    token, gistId, interval: SYNC.interval
+  }));
+
+  syncLog('⚙️ تم حفظ الإعدادات');
+
+  if (!gistId) {
+    syncLog('🆕 إنشاء Gist جديد...');
+    syncCreateGist().then(id => {
+      if (id) {
+        SYNC.gistId = id;
+        document.getElementById('syncGistIdInput').value = id;
+        localStorage.setItem('miami_sync_cfg', JSON.stringify({
+          token: SYNC.token, gistId: id, interval: SYNC.interval
+        }));
+        syncLog('✅ Gist جديد: ' + id);
+        toast('✅ تم إنشاء Gist ومزامنة أولى', 'success');
+        syncPush(false);
+        syncStartAuto();
+        syncUpdateBar('ok', 'متزامن');
+      }
+    });
+  } else {
+    syncLog('🔗 ربط بـ Gist موجود: ' + gistId);
+    syncPull(false).then(() => {
+      syncStartAuto();
+      syncUpdateBar('ok', 'متزامن');
+      toast('✅ تم تفعيل المزامنة', 'success');
+    });
+  }
+  syncRenderStatus();
+}
+
+// ── إنشاء Gist جديد ──
+async function syncCreateGist() {
+  try {
+    const payload = {
+      description: 'ميامي جلابية — بيانات المزامنة',
+      public: false,
+      files: {
+        'miami_data.json': { content: JSON.stringify({ _empty: true, _created: new Date().toISOString() }) }
+      }
+    };
+    const res = await fetch('https://api.github.com/gists', {
+      method: 'POST',
+      headers: { Authorization: 'token ' + SYNC.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) { syncLog('❌ فشل إنشاء Gist: ' + res.status); return null; }
+    const data = await res.json();
+    return data.id;
+  } catch(e) { syncLog('❌ خطأ الشبكة: ' + e.message); return null; }
+}
+
+// ── رفع البيانات → GitHub ──
+async function syncPush(showToast = true) {
+  if (!SYNC.token || !SYNC.gistId) return;
+  if (SYNC.isSyncing) return;
+  SYNC.isSyncing = true;
+  syncUpdateBar('syncing', 'جاري الرفع...');
+
+  try {
+    // بيانات بدون صور (الصور كبيرة جداً للـ Gist)
+    function stripImgs(obj) {
+      if (typeof obj !== 'object' || obj === null) return obj;
+      if (Array.isArray(obj)) return obj.map(stripImgs);
+      const r = {};
+      for (const k in obj) {
+        r[k] = (k === 'image' && typeof obj[k] === 'string' && obj[k].startsWith('data:'))
+          ? '§IMG§' : stripImgs(obj[k]);
+      }
+      return r;
+    }
+
+    const payload = {
+      _ts: Date.now(),
+      _device: SYNC.deviceId,
+      _v: DATA_VERSION,
+      data: stripImgs(DB)
+    };
+
+    const res = await fetch('https://api.github.com/gists/' + SYNC.gistId, {
+      method: 'PATCH',
+      headers: { Authorization: 'token ' + SYNC.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: { 'miami_data.json': { content: JSON.stringify(payload) } } })
+    });
+
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const now = new Date().toLocaleTimeString('ar-EG');
+    syncLog('⬆️ رُفع بنجاح — ' + now);
+    syncUpdateBar('ok', 'آخر رفع: ' + now);
+    if (showToast) toast('✅ تم رفع البيانات لـ GitHub', 'success');
+  } catch(e) {
+    syncLog('❌ فشل الرفع: ' + e.message);
+    syncUpdateBar('error', 'فشل الرفع');
+    if (showToast) toast('❌ فشل رفع البيانات: ' + e.message, 'error');
+  } finally {
+    SYNC.isSyncing = false;
+  }
+}
+
+// ── سحب البيانات ← GitHub ──
+async function syncPull(showToast = true) {
+  if (!SYNC.token || !SYNC.gistId) return;
+  syncUpdateBar('syncing', 'جاري السحب...');
+
+  try {
+    const res = await fetch('https://api.github.com/gists/' + SYNC.gistId + '?_=' + Date.now(), {
+      headers: { Authorization: 'token ' + SYNC.token }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    const gist = await res.json();
+    const raw  = gist.files?.['miami_data.json']?.content;
+    if (!raw) { syncLog('⚠️ Gist فارغ'); return; }
+
+    const parsed = JSON.parse(raw);
+    if (parsed._empty) { syncLog('ℹ️ Gist فارغ — لا يوجد بيانات بعد'); return; }
+
+    // تحقق من الهاش لتجنب إعادة التحميل إذا لم يتغير شيء
+    const hash = parsed._ts + '';
+    if (hash === SYNC.lastPullHash) {
+      syncUpdateBar('ok', 'لا تحديث جديد');
+      return;
+    }
+
+    // تحقق إذا البيانات الخارجية أحدث
+    const remoteTs = parsed._ts || 0;
+    const localTs  = DB._lastSyncTs || 0;
+
+    if (remoteTs <= localTs && SYNC.lastPullHash) {
+      syncUpdateBar('ok', 'بياناتك أحدث');
+      return;
+    }
+
+    // دمج البيانات: الأحدث يفوز لكل قسم
+    if (parsed.data) {
+      let merged = false;
+      Object.keys(parsed.data).forEach(sid => {
+        if (sid.startsWith('_')) return;
+        const remote = parsed.data[sid];
+        const local  = DB[sid];
+        if (!remote || typeof remote !== 'object') return;
+
+        if (!local) { DB[sid] = remote; merged = true; return; }
+
+        // دمج العناصر: نضيف الغير موجودة محلياً
+        ['invoices','payments','discounts'].forEach(key => {
+          if (!Array.isArray(remote[key])) return;
+          if (!Array.isArray(local[key])) local[key] = [];
+          remote[key].forEach(remItem => {
+            const exists = local[key].find(l => l.id === remItem.id);
+            if (!exists) {
+              // استعادة صورة محلية إذا كانت placeholder
+              if (remItem.image === '§IMG§') remItem.image = null;
+              local[key].push(remItem);
+              merged = true;
+            } else {
+              // تحديث حالة الحذف إذا حُذف من الجهاز الآخر
+              if (remItem.deleted && !exists.deleted) {
+                exists.deleted = true;
+                merged = true;
+              }
+            }
+          });
+        });
+
+        // دمج العملاء
+        if (Array.isArray(remote.clients)) {
+          remote.clients.forEach(remC => {
+            const exists = local.clients.find(l => l.id === remC.id);
+            if (!exists) { local.clients.push(remC); merged = true; }
+          });
+        }
+      });
+
+      DB._lastSyncTs = remoteTs;
+      SYNC.lastPullHash = hash;
+
+      if (merged) {
+        saveDB();
+        renderPage();
+        const now = new Date().toLocaleTimeString('ar-EG');
+        syncLog('⬇️ تحديث جديد من الجهاز الآخر — ' + now);
+        syncUpdateBar('ok', 'تحديث ' + now);
+        if (showToast) toast('🔄 تم استلام تحديثات جديدة من الجهاز الآخر', 'info', 4000);
+      } else {
+        const now = new Date().toLocaleTimeString('ar-EG');
+        syncLog('✓ لا تحديث جديد — ' + now);
+        syncUpdateBar('ok', 'محدّث ' + now);
+      }
+    }
+  } catch(e) {
+    syncLog('❌ فشل السحب: ' + e.message);
+    syncUpdateBar('error', 'فشل الاتصال');
+    if (showToast) toast('❌ فشل سحب البيانات', 'error');
+  }
+}
+
+// ── تشغيل المزامنة التلقائية ──
+function syncStartAuto() {
+  clearInterval(SYNC.timer);
+  if (!SYNC.enabled || !SYNC.token || !SYNC.gistId || SYNC.interval === 0) return;
+  SYNC.timer = setInterval(async () => {
+    await syncPull(false);
+  }, SYNC.interval);
+  syncLog('⏱ مزامنة تلقائية كل ' + (SYNC.interval/1000) + ' ث');
+}
+
+// ── تعطيل المزامنة ──
+function syncDisable() {
+  if (!confirm('تعطيل المزامنة؟')) return;
+  clearInterval(SYNC.timer);
+  SYNC.enabled = false;
+  SYNC.token = '';
+  SYNC.gistId = '';
+  localStorage.removeItem('miami_sync_cfg');
+  syncUpdateBar('offline', 'غير مفعّل');
+  syncLog('🔴 تم تعطيل المزامنة');
+  toast('تم تعطيل المزامنة', 'info');
+  syncRenderStatus();
+}
+
+// ── اختبار الاتصال ──
+async function syncTestConnection() {
+  const token = document.getElementById('syncTokenInput').value.trim();
+  if (!token) { toast('⚠ أدخل التوكن أولاً', 'error'); return; }
+  toast('⏳ جاري الاختبار...', 'info', 2000);
+  try {
+    const res = await fetch('https://api.github.com/user', {
+      headers: { Authorization: 'token ' + token }
+    });
+    if (res.ok) {
+      const user = await res.json();
+      toast('✅ اتصال ناجح — مرحباً ' + user.login, 'success', 4000);
+      syncLog('✅ اتصال ناجح: ' + user.login);
+    } else {
+      toast('❌ Token غير صحيح أو منتهي — ' + res.status, 'error');
+    }
+  } catch(e) {
+    toast('❌ فشل الاتصال بالإنترنت', 'error');
+  }
+}
+
+// ── عرض Gist ID الحالي ──
+function syncShowGistId() {
+  if (SYNC.gistId) {
+    document.getElementById('syncGistIdInput').value = SYNC.gistId;
+    toast('Gist ID: ' + SYNC.gistId, 'info', 5000);
+  } else {
+    toast('لا يوجد Gist ID محفوظ بعد', 'warning');
+  }
+}
+
+// ── تغيير فترة المزامنة ──
+function syncSetInterval(val) {
+  SYNC.interval = Number(val);
+  const cfg = JSON.parse(localStorage.getItem('miami_sync_cfg') || '{}');
+  cfg.interval = SYNC.interval;
+  localStorage.setItem('miami_sync_cfg', JSON.stringify(cfg));
+  syncStartAuto();
+  syncLog('⏱ تغيير الفترة إلى ' + (SYNC.interval ? SYNC.interval/1000 + ' ث' : 'يدوي'));
+}
+
+// ── تحديث شريط الحالة ──
+function syncUpdateBar(status, label) {
+  const bar = document.getElementById('syncStatusBar');
+  if (!bar) return;
+  const dot = bar.querySelector('.sync-dot');
+  const txt = bar.querySelector('.sync-label');
+  if (dot) { dot.className = 'sync-dot ' + status; }
+  if (txt) txt.textContent = label || '';
+}
+
+// ── سجل ──
+function syncLog(msg) {
+  const ts = new Date().toLocaleTimeString('ar-EG');
+  SYNC.log.unshift('[' + ts + '] ' + msg);
+  if (SYNC.log.length > 50) SYNC.log.pop();
+  const logEl = document.getElementById('syncLog');
+  if (logEl) logEl.innerHTML = SYNC.log.map(l => `<div style="margin-bottom:3px">${l}</div>`).join('');
+}
+
+// ── عرض حالة المزامنة في Modal ──
+function syncRenderStatus() {
+  const box = document.getElementById('syncStatusBox');
+  if (!box) return;
+
+  if (SYNC.enabled && SYNC.gistId) {
+    box.innerHTML = `
+    <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px 16px;display:flex;gap:12px;align-items:center;margin-bottom:8px">
+      <div class="sync-dot ok"></div>
+      <div style="flex:1">
+        <div style="font-weight:700;color:#15803d;font-size:13px">المزامنة مفعّلة ✅</div>
+        <div style="font-size:11px;color:#16a34a;margin-top:3px">Gist: ${SYNC.gistId}</div>
+      </div>
+      <a href="https://gist.github.com/${SYNC.gistId}" target="_blank" class="btn btn-xs btn-outline">
+        <i class="fa fa-external-link"></i> فتح
+      </a>
+    </div>
+    <div style="font-size:12px;color:var(--gray-500);padding:6px 4px">
+      <i class="fa fa-info-circle"></i> انسخ الـ Gist ID وضعه في الجهاز الثاني لمزامنتهما على نفس البيانات.
+    </div>`;
+
+    // Set token in input
+    document.getElementById('syncTokenInput').value = SYNC.token ? '●'.repeat(20) : '';
+    document.getElementById('syncGistIdInput').value = SYNC.gistId;
+    document.getElementById('syncIntervalSelect').value = String(SYNC.interval);
+  } else {
+    box.innerHTML = `
+    <div style="background:#fef3c7;border:1.5px solid #fbbf24;border-radius:10px;padding:12px 16px;font-size:13px;color:#92400e">
+      <i class="fa fa-triangle-exclamation"></i> المزامنة غير مفعّلة — أدخل البيانات أدناه للبدء
+    </div>`;
+  }
+}
+
+// ── فتح Modal المزامنة ──
+function openSyncModal() {
+  syncRenderStatus();
+  const logEl = document.getElementById('syncLog');
+  if (logEl) logEl.innerHTML = SYNC.log.map(l => `<div style="margin-bottom:3px">${l}</div>`).join('');
+  if (SYNC.gistId) document.getElementById('syncGistIdInput').value = SYNC.gistId;
+  openModal('syncModal');
+}
+
+// Device ID
+SYNC.deviceId = localStorage.getItem('miami_device_id') || (() => {
+  const id = 'dev_' + Math.random().toString(36).substr(2, 8);
+  localStorage.setItem('miami_device_id', id);
+  return id;
+})();
+
 window.addEventListener('DOMContentLoaded', () => {
 console.log('🚀 تحميل نظام إدارة جلابية ميامي Pro...');
 initDB();
 checkLock();
+
+// تحميل إعدادات المزامنة
+syncLoadConfig();
+
 renderDashboard();
 console.log('✅ النظام جاهز!');
+
+// بدء المزامنة التلقائية إذا مفعّلة
+if (SYNC.enabled) {
+  syncLog('🟢 بدء المزامنة التلقائية...');
+  syncPull(false).then(() => syncStartAuto());
+}
 
 // ── حفظ تلقائي كل دقيقتين ──
 setInterval(() => {
@@ -2869,7 +3966,12 @@ window.calcInvTotal = calcInvTotal;
 window.filterInvoices = filterInvoices;
 window.openPaymentModal = openPaymentModal;
 window.savePayment = savePayment;
+window.editPayment = editPayment;
 window.deletePayment = deletePayment;
+window.payClientSearch = payClientSearch;
+window.paySelectClient = paySelectClient;
+window.clearPayClient = clearPayClient;
+window.payUpdateCurrencyHint = payUpdateCurrencyHint;
 window.filterPayments = filterPayments;
 window.openDiscountModal = openDiscountModal;
 window.saveDiscount = saveDiscount;
@@ -2899,6 +4001,20 @@ window.previewPayImage = previewPayImage;
 window.clearPayImage = clearPayImage;
 window.openImgFullscreen = openImgFullscreen;
 window.saveDBSync = saveDBSync;
+window.openBulkPaymentModal = openBulkPaymentModal;
+window.openSyncModal = openSyncModal;
+window.syncPush = syncPush;
+window.syncPull = syncPull;
+window.syncSaveConfig = syncSaveConfig;
+window.syncDisable = syncDisable;
+window.syncTestConnection = syncTestConnection;
+window.syncShowGistId = syncShowGistId;
+window.syncSetInterval = syncSetInterval;
+window.bulkRowToggle = bulkRowToggle;
+window.saveBulkPayment = saveBulkPayment;
+window.bulkRowToggle = bulkRowToggle;
+window.bulkSelectAll = bulkSelectAll;
+window.updateBulkTotal = updateBulkTotal;
 window.restoreFromIndexedDB = restoreFromIndexedDB;
 
 console.log('✨ جميع الوظائف تم تحميلها بنجاح - نظام الحفظ المُعزَّز نشط');
