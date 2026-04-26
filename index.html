@@ -603,14 +603,20 @@ body{background:#fff}
       </div>
     </div>
   </div>
-  <div style="background:var(--gray-50);padding:10px 14px;border-radius:var(--radius);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+  <div style="background:var(--gray-50);padding:10px 14px;border-radius:var(--radius);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
     <span style="font-size:12px;font-weight:700;color:var(--gray-600)">اختر العملاء وأدخل المبلغ لكل منهم:</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-xs btn-outline" onclick="bulkSelectAll(true)"><i class="fa fa-check-double"></i> تحديد الكل</button>
       <button class="btn btn-xs btn-outline" onclick="bulkSelectAll(false)"><i class="fa fa-xmark"></i> إلغاء الكل</button>
     </div>
   </div>
-  <div id="bulkClientsList" style="max-height:360px;overflow-y:auto;padding:2px"></div>
+  <div style="position:relative;margin-bottom:8px">
+    <i class="fa fa-search" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--gray-400);font-size:13px;pointer-events:none"></i>
+    <input type="text" id="bulkSearchInput" oninput="bulkFilterClients(this.value)"
+      placeholder="ابحث عن عميل بالاسم..."
+      style="width:100%;padding:8px 34px 8px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:13px;font-family:inherit;box-sizing:border-box">
+  </div>
+  <div id="bulkClientsList" style="max-height:320px;overflow-y:auto;padding:2px"></div>
   <div style="margin-top:14px;padding:12px 16px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:var(--radius)">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <span style="font-size:13px;font-weight:700;color:#15803d"><i class="fa fa-sigma"></i> إجمالي الدفعات المحددة:</span>
@@ -1449,6 +1455,61 @@ document.getElementById('pay_clear_img').style.display = 'none';
 document.getElementById('pay_image_file').value = '';
 }
 
+
+// ── ملخص رأس المال الصافي ──
+function renderCapitalSummary() {
+  var USD = 3.67;
+  var defs = [
+    { label:'ميامي',  icon:'fa-industry', clientId:'miami_clients',  factoryId:'miami_factory',  clientCur:'USD', c1:'#1a3a5c', c2:'#155a8a', bg:'#f0f9ff', bd:'#7dd3fc' },
+    { label:'كويتي', icon:'fa-factory',  clientId:'kuwait_clients', factoryId:'kuwait_factory', clientCur:'AED', c1:'#3d1a7c', c2:'#1e5a3a', bg:'#faf5ff', bd:'#c4b5fd' },
+    { label:'عشتار', icon:'fa-building', clientId:'ishtar_clients', factoryId:'ishtar_factory', clientCur:'AED', c1:'#7c2d12', c2:'#0f766e', bg:'#f0fdfa', bd:'#5eead4' },
+  ];
+  var totalNet = 0;
+  var cardsHtml = '';
+  defs.forEach(function(d) {
+    var clientOwed  = getSectionStats(d.clientId).totalOwed;
+    var factoryOwed = getSectionStats(d.factoryId).totalOwed;
+    var clientAED   = d.clientCur === 'USD' ? clientOwed * USD : clientOwed;
+    var net         = clientAED - factoryOwed;
+    totalNet += net;
+    var netColor = net >= 0 ? '#15803d' : '#dc2626';
+    var netBg    = net >= 0 ? '#f0fdf4'  : '#fef2f2';
+    var clientLabel = d.clientCur === 'USD'
+      ? fmtNum(clientOwed,2) + ' $ &times; ' + USD + ' = ' + fmtNum(clientAED,2) + ' د.إ'
+      : fmtNum(clientOwed,2) + ' د.إ';
+    cardsHtml +=
+      '<div style="background:' + d.bg + ';border:1.5px solid ' + d.bd + ';border-radius:12px;padding:14px">' +
+        '<div style="font-size:12px;font-weight:800;color:' + d.c1 + ';margin-bottom:10px">' +
+          '<i class="fa ' + d.icon + '"></i> قسم ' + d.label +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:6px;font-size:12px">' +
+          '<div style="display:flex;justify-content:space-between;padding:6px 8px;background:rgba(255,255,255,.7);border-radius:6px">' +
+            '<span><i class="fa fa-users" style="color:' + d.c2 + '"></i> مستحق من العملاء</span>' +
+            '<span style="font-weight:700;color:' + d.c2 + '">' + clientLabel + '</span>' +
+          '</div>' +
+          '<div style="display:flex;justify-content:space-between;padding:6px 8px;background:rgba(255,255,255,.7);border-radius:6px">' +
+            '<span><i class="fa fa-industry" style="color:#dc2626"></i> التزامات المصنع</span>' +
+            '<span style="font-weight:700;color:#dc2626">' + fmtNum(factoryOwed,2) + ' د.إ</span>' +
+          '</div>' +
+          '<div style="display:flex;justify-content:space-between;padding:8px 10px;background:' + netBg + ';border-radius:8px;border:1px solid ' + netColor + ';margin-top:2px">' +
+            '<span style="font-weight:800;color:' + netColor + ';font-size:13px"><i class="fa fa-equals"></i> صافي رأس المال</span>' +
+            '<span style="font-weight:900;color:' + netColor + ';font-size:16px">' + fmtNum(net,2) + ' د.إ</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  });
+  var totalColor = totalNet >= 0 ? '#15803d' : '#dc2626';
+  var totalBg    = totalNet >= 0 ? 'linear-gradient(135deg,#f0fdf4,#dcfce7)' : 'linear-gradient(135deg,#fef2f2,#fee2e2)';
+  return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:12px">' + cardsHtml + '</div>' +
+    '<div style="background:' + totalBg + ';border:2px solid ' + totalColor + ';border-radius:12px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center">' +
+      '<div>' +
+        '<div style="font-size:13px;font-weight:800;color:' + totalColor + '"><i class="fa fa-sigma"></i> إجمالي رأس المال الصافي (كل الأقسام)</div>' +
+        '<div style="font-size:11px;color:#6b7280;margin-top:2px">بعد تحويل الدولار × ' + USD + ' وخصم التزامات المصانع</div>' +
+      '</div>' +
+      '<div style="font-size:26px;font-weight:900;color:' + totalColor + '">' + fmtNum(totalNet,2) + ' د.إ</div>' +
+    '</div>';
+}
+
 /* ════════════════════════════════════════════════════
 🏠 RENDER: DASHBOARD
 ════════════════════════════════════════════════════ */
@@ -1577,31 +1638,13 @@ return `
 <span><i class="fa fa-money-bill"></i> إجمالي المدفوعات: <strong>${Object.values(SECTIONS).reduce((a,s)=>a+getSectionStats(s.id).totalPayments,0)}</strong></span>
 </div>
 
-<!-- ── بطاقة ملخص العملات ── -->
+<!-- ── بطاقة ملخص رأس المال الصافي ── -->
 <div class="card" style="margin-top:12px;border:1px solid var(--gray-200)">
 <div class="card-title" style="font-size:14px;color:var(--gray-700)">
-  <i class="fa fa-coins"></i> ملخص مستحقات العملاء
+  <i class="fa fa-scale-balanced"></i> ملخص رأس المال الصافي (مستحقات العملاء − التزامات المصنع)
 </div>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
-  <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;border-radius:10px;padding:14px;text-align:center">
-    <div style="font-size:11px;font-weight:700;color:#15803d;margin-bottom:6px"><i class="fa fa-dollar-sign"></i> عملاء ميامي (USD)</div>
-    <div style="font-size:22px;font-weight:900;color:#15803d">${fmtNum(getSectionStats('miami_clients').totalOwed, 2)}</div>
-    <div style="font-size:10px;color:#16a34a;margin-top:4px">مستحق من عملاء ميامي • $</div>
-  </div>
-  <div style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #7dd3fc;border-radius:10px;padding:14px;text-align:center">
-    <div style="font-size:11px;font-weight:700;color:#0369a1;margin-bottom:6px"><i class="fa fa-user-group"></i> عملاء كويتي (AED)</div>
-    <div style="font-size:22px;font-weight:900;color:#0369a1">${fmtNum(getSectionStats('kuwait_clients').totalOwed, 2)}</div>
-    <div style="font-size:10px;color:#0891b2;margin-top:4px">مستحق من عملاء كويتي • د.إ</div>
-  </div>
-  <div style="background:linear-gradient(135deg,#f0fdfa,#ccfbf1);border:1px solid #5eead4;border-radius:10px;padding:14px;text-align:center">
-    <div style="font-size:11px;font-weight:700;color:#0f766e;margin-bottom:6px"><i class="fa fa-user-tag"></i> عملاء عشتار (AED)</div>
-    <div style="font-size:22px;font-weight:900;color:#0f766e">${fmtNum(getSectionStats('ishtar_clients').totalOwed, 2)}</div>
-    <div style="font-size:10px;color:#0d9488;margin-top:4px">مستحق من عملاء عشتار • د.إ</div>
-  </div>
-</div>
-</div>
-</div>
-`;
+${renderCapitalSummary()}
+</div>`;
 
 document.getElementById('mainContent').innerHTML = html;
 }
@@ -3664,7 +3707,19 @@ function openBulkPaymentModal() {
   }).join('');
 
   document.getElementById('bulkTotal').textContent = '0.00';
+  const searchEl = document.getElementById('bulkSearchInput');
+  if (searchEl) searchEl.value = '';
   openModal('bulkPaymentModal');
+}
+
+function bulkFilterClients(query) {
+  const q = query.trim().toLowerCase();
+  const sec = DB[currentSection];
+  sec.clients.forEach(c => {
+    const row = document.getElementById('bulk_row_' + c.id);
+    if (!row) return;
+    row.style.display = (!q || c.name.toLowerCase().includes(q)) ? '' : 'none';
+  });
 }
 
 function bulkRowToggle(clientId) {
@@ -4475,6 +4530,8 @@ window.saveBulkPayment = saveBulkPayment;
 window.bulkRowToggle = bulkRowToggle;
 window.bulkSelectAll = bulkSelectAll;
 window.updateBulkTotal = updateBulkTotal;
+window.bulkFilterClients = bulkFilterClients;
+window.renderCapitalSummary = renderCapitalSummary;
 window.bulkCurrencyChanged = bulkCurrencyChanged;
 window.deleteItemImage = deleteItemImage;
 window.imgThumbWithDelete = imgThumbWithDelete;
