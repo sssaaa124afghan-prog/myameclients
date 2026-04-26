@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>نظام إدارة مبيعات جلابية ميامي - Pro</title>
+<title>نظام إدارة مبيعات جلابية ميامي - Pro v6</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{
 --primary:#1a3a5c;--primary-light:#2563a8;--primary-dark:#0f2238;
@@ -590,6 +592,16 @@ body{background:#fff}
       </select>
     </div>
     <div class="form-group" style="grid-column:1/-1"><label>ملاحظة عامة (اختياري)</label><input id="bulk_notes" placeholder="مثال: سداد الحصة الشهرية"></div>
+    <div class="form-group" style="grid-column:1/-1">
+      <label>عملة المبالغ المُدخَلة</label>
+      <select id="bulk_currency" onchange="bulkCurrencyChanged()">
+        <option value="section">عملة القسم (افتراضي)</option>
+        <option value="USD">دولار أمريكي $ ← يتحوّل تلقائياً × 3.67 إلى د.إ</option>
+      </select>
+      <div id="bulk_currency_hint" style="display:none;margin-top:6px;padding:6px 10px;background:#fef3c7;border-radius:6px;font-size:12px;font-weight:700;color:#92400e">
+        <i class="fa fa-info-circle"></i> المبالغ بالدولار ستُحوَّل تلقائياً: 1$ = 3.67 د.إ
+      </div>
+    </div>
   </div>
   <div style="background:var(--gray-50);padding:10px 14px;border-radius:var(--radius);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
     <span style="font-size:12px;font-weight:700;color:var(--gray-600)">اختر العملاء وأدخل المبلغ لكل منهم:</span>
@@ -599,9 +611,14 @@ body{background:#fff}
     </div>
   </div>
   <div id="bulkClientsList" style="max-height:360px;overflow-y:auto;padding:2px"></div>
-  <div style="margin-top:14px;padding:12px 16px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center">
-    <span style="font-size:13px;font-weight:700;color:#15803d"><i class="fa fa-sigma"></i> إجمالي الدفعات المحددة:</span>
-    <span id="bulkTotal" style="font-size:18px;font-weight:900;color:#15803d">0.00</span>
+  <div style="margin-top:14px;padding:12px 16px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:var(--radius)">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;font-weight:700;color:#15803d"><i class="fa fa-sigma"></i> إجمالي الدفعات المحددة:</span>
+      <span id="bulkTotal" style="font-size:18px;font-weight:900;color:#15803d">0.00</span>
+    </div>
+    <div id="bulkConversionNote" style="display:none;margin-top:8px;padding:6px 10px;background:#fff7ed;border-radius:6px;font-size:12px;color:#92400e;font-weight:600;border:1px solid #fed7aa">
+      <i class="fa fa-arrows-rotate"></i> <span id="bulkConversionText"></span>
+    </div>
   </div>
 </div>
 <div class="modal-footer">
@@ -864,14 +881,63 @@ function saveDBSync() {
 // ── حفظ مع debounce (للعمليات المتكررة) ──
 function saveDB() {
   clearTimeout(autoSaveTimer);
-  // حفظ فوري في sessionStorage لحماية البيانات
   try { sessionStorage.setItem('jalabiya_miami_db_bk', JSON.stringify(DB)); } catch(e) {}
-  // حفظ مؤجل في localStorage (debounce 300ms) + رفع للـ Gist
   autoSaveTimer = setTimeout(() => {
     saveDBSync();
     if (SYNC.enabled && SYNC.token && SYNC.gistId) {
-      syncPush(false); // رفع تلقائي بعد كل حفظ
+      syncPush(false);
     }
+  }, 500);
+}
+
+// ── تنظيف التخزين الذكي ──
+function cleanStorage() {
+  let freed = 0;
+  try {
+    let snaps = JSON.parse(localStorage.getItem('jalabiya_snaps') || '[]');
+    const before = snaps.length;
+    snaps = snaps.slice(0, 5);
+    localStorage.setItem('jalabiya_snaps', JSON.stringify(snaps));
+    freed += before - snaps.length;
+  } catch(e) {}
+
+  try {
+    let changed = false;
+    Object.keys(DB).forEach(sid => {
+      const sec = DB[sid];
+      if (!sec || typeof sec !== 'object') return;
+      ['invoices','payments'].forEach(key => {
+        if (!Array.isArray(sec[key])) return;
+        sec[key].forEach(item => {
+          if (item.image && item.image.startsWith('data:') && item.image.length > 150000) {
+            try {
+              const img = new Image();
+              img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX = 700; let w = img.width, h = img.height;
+                if (w > MAX) { h = Math.round(h * MAX/w); w = MAX; }
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                const compressed = canvas.toDataURL('image/jpeg', 0.55);
+                if (compressed.length < item.image.length) { item.image = compressed; changed = true; }
+              };
+              img.src = item.image;
+            } catch(e) {}
+          }
+        });
+      });
+    });
+    if (changed) setTimeout(() => saveDBSync(), 1500);
+  } catch(e) {}
+
+  setTimeout(() => {
+    const info = getStorageInfo();
+    if (freed > 0) {
+      toast('🧹 تم حذف ' + freed + ' نسخ قديمة — مساحة التخزين: ' + info.pct + '%', 'success', 5000);
+    } else {
+      toast('💾 مساحة التخزين: ' + info.pct + '% (' + info.usedKB + ' KB) — الضغط على الصور جارٍ...', 'info', 5000);
+    }
+    saveDBSync();
   }, 500);
 }
 
@@ -887,7 +953,9 @@ el._fadeTimer = setTimeout(() => {
 el.style.color = '#94a3b8'; 
 }, 3000);
 if (info.pct > 85) {
-  toast(`⚠ مساحة التخزين ${info.pct}% — يُنصح بتصدير نسخة احتياطية`, 'warning', 5000);
+  toast(`🚨 مساحة التخزين ${info.pct}% — اضغط "تنظيف" أو صدّر نسخة احتياطية فوراً!`, 'error', 6000);
+} else if (info.pct > 70) {
+  toast(`⚠ مساحة التخزين ${info.pct}% — يُنصح بالضغط على "تنظيف"`, 'warning', 5000);
 }
 }
 }
@@ -1246,7 +1314,52 @@ return { totalClients, totalOwed, totalInvoices, totalPayments };
 
 function imgThumb(src) {
 if (!src) return '<span style="color:var(--gray-300);font-size:11px">—</span>';
-return `<img src="${src}" class="img-thumb" onclick="openImgFullscreen('${src}')" title="اضغط للتكبير">`;
+// تهريب الاقتباسات لتجنب كسر الـ onclick
+const safe = src.replace(/'/g, "&#39;");
+return `<img src="${src}" class="img-thumb" onclick="openImgFullscreen('${safe}')" title="اضغط للتكبير">`;
+}
+
+// إظهار صورة مع زر حذف (للجداول)
+function imgThumbWithDelete(src, type, itemId) {
+if (!src) return '<span style="color:var(--gray-300);font-size:11px">—</span>';
+const safe = src.replace(/'/g, "&#39;");
+return `<div style="display:flex;align-items:center;gap:4px">
+  <img src="${src}" class="img-thumb" onclick="openImgFullscreen('${safe}')" title="اضغط للتكبير">
+  <button class="btn btn-xs btn-danger btn-icon" style="width:22px;height:22px;padding:0;font-size:10px" 
+    onclick="deleteItemImage('${type}','${itemId}')" title="حذف الصورة">
+    <i class="fa fa-trash"></i>
+  </button>
+</div>`;
+}
+
+// حذف صورة من سجل موجود
+function deleteItemImage(type, itemId) {
+if (!confirm('⚠ حذف الصورة المرفقة؟')) return;
+const sec = DB[currentSection];
+const arr = sec[type === 'invoice' ? 'invoices' : 'payments'];
+const item = arr ? arr.find(x => x.id === itemId) : null;
+if (!item) return;
+item.image = null;
+// حذف من IndexedDB أيضاً
+if (_idb) {
+  try {
+    const tx = _idb.transaction('backups', 'readwrite');
+    const req = tx.objectStore('backups').get('images');
+    req.onsuccess = e => {
+      if (e.target.result) {
+        try {
+          const imgs = JSON.parse(e.target.result.data);
+          delete imgs[itemId];
+          const tx2 = _idb.transaction('backups', 'readwrite');
+          tx2.objectStore('backups').put({ id: 'images', data: JSON.stringify(imgs), ts: Date.now() });
+        } catch(e2) {}
+      }
+    };
+  } catch(e) {}
+}
+saveDB();
+renderTab();
+toast('✅ تم حذف الصورة بنجاح', 'success');
 }
 
 function openImgFullscreen(src) {
@@ -1309,6 +1422,9 @@ document.getElementById('headerActions').innerHTML = `
 </button>
 <button class="btn btn-outline" style="background:rgba(255,200,0,.12);border-color:rgba(255,200,0,.3);color:#fde68a" onclick="showSnaps()">
 <i class="fa fa-clock-rotate-left"></i> النسخ
+</button>
+<button class="btn btn-outline" style="background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.3);color:#6ee7b7" onclick="cleanStorage()" title="تنظيف المساحة وضغط الصور">
+<i class="fa fa-broom"></i> تنظيف
 </button>
 <button class="btn btn-outline" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5" onclick="lockApp()">
 <i class="fa fa-lock"></i> قفل
@@ -1659,6 +1775,7 @@ document.getElementById('statementContent').innerHTML = `
 <!-- أزرار -->
 <div class="stmt-actions no-print">
   <button class="btn btn-primary btn-sm" onclick="printAllClientsStatement()"><i class="fa fa-print"></i> طباعة الكل</button>
+  <button class="btn btn-danger btn-sm" onclick="downloadAllClientsPDF()"><i class="fa fa-file-pdf"></i> تصدير PDF مباشر</button>
   <button class="btn btn-success btn-sm" onclick="exportAllClientsExcel()"><i class="fa fa-file-excel"></i> Excel</button>
   <button class="btn btn-sm" id="hideZeroBtn" onclick="toggleZeroClients()" style="background:#f1f5f9;color:#475569;border:1.5px solid #cbd5e1;font-weight:700"><i class="fa fa-eye-slash"></i> إخفاء المسوّين</button>
 </div>
@@ -1944,6 +2061,7 @@ document.getElementById('statementContent').innerHTML = `
 <!-- أزرار الإجراءات -->
 <div class="stmt-actions no-print">
   <button class="btn btn-primary" onclick="printStatement('${clientId}')"><i class="fa fa-print"></i> طباعة</button>
+  <button class="btn btn-danger btn-sm" onclick="downloadStatementPDF('${clientId}')"><i class="fa fa-file-pdf"></i> تصدير PDF مباشر</button>
   <button class="btn btn-success btn-sm" onclick="exportStatementExcel('${clientId}')"><i class="fa fa-file-excel"></i> Excel</button>
   <button class="btn btn-info btn-sm" onclick="openInvoiceModal('${clientId}')"><i class="fa fa-plus"></i> فاتورة</button>
   <button class="btn btn-warning btn-sm" onclick="openPaymentModal('${clientId}')"><i class="fa fa-money-bill"></i> دفعة</button>
@@ -2175,6 +2293,152 @@ w.document.write(`<!DOCTYPE html>
 w.document.close();
 }
 
+function downloadStatementPDF(clientId) {
+const sec = DB[currentSection];
+const s   = SECTIONS[currentSection];
+const client = sec.clients.find(c => c.id === clientId);
+if (!client) return;
+
+// جمع الحركات
+let transactions = [];
+if (client.balance && client.balance !== 0)
+  transactions.push({ date:'2024-01-01', type:'opening', desc:'رصيد افتتاحي',
+    debit: client.balance>0?client.balance:0, credit: client.balance<0?Math.abs(client.balance):0 });
+sec.invoices.filter(i=>i.clientId===clientId&&!i.deleted).forEach(inv=>
+  transactions.push({ date:inv.date, type:'invoice', desc:`فاتورة #${inv.num}`, debit:Number(inv.total||0), credit:0, notes:inv.notes }));
+sec.payments.filter(p=>p.clientId===clientId&&!p.deleted).forEach(pay=>
+  transactions.push({ date:pay.date, type:'payment', desc:`دفعة — ${pay.method}`, debit:0, credit:Number(pay.amount||0), notes:pay.notes }));
+if (sec.discounts) sec.discounts.filter(d=>d.clientId===clientId&&!d.deleted).forEach(disc=>
+  transactions.push({ date:disc.date, type:'discount', desc:`خصم — ${disc.reason||''}`, debit:0, credit:Number(disc.amount||0) }));
+
+transactions.sort((a,b)=>a.date.localeCompare(b.date));
+let running = 0;
+transactions.forEach(t=>{ running += t.debit - t.credit; t.balance = running; });
+
+const finalBal  = getClientBalance(currentSection, clientId);
+const totalDeb  = transactions.reduce((sum,t)=>sum+t.debit, 0);
+const totalCred = transactions.reduce((sum,t)=>sum+t.credit, 0);
+const todayStr  = new Date().toLocaleDateString('ar-EG', {year:'numeric',month:'long',day:'numeric'});
+const typeLbls  = { opening:'رصيد سابق', invoice:'فاتورة', payment:'دفعة', discount:'خصم' };
+const fileName  = `كشف حساب - ${client.name} - ${s.name}.pdf`;
+
+toast('⏳ جاري إنشاء ملف PDF...', 'info', 3000);
+
+// بناء HTML المؤقت للتحويل
+const container = document.createElement('div');
+container.style.cssText = 'position:fixed;top:-99999px;left:0;width:820px;background:#fff;font-family:Segoe UI,Cairo,Arial,sans-serif;direction:rtl;color:#0f172a;z-index:-1';
+
+const rowsHtml = transactions.map((t,idx) => {
+  const pc = {
+    opening:'background:#f0f9ff;color:#0891b2;border:1px solid #bae6fd;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block',
+    invoice:'background:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block',
+    payment:'background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block',
+    discount:'background:#fffbeb;color:#d97706;border:1px solid #fde68a;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block'
+  }[t.type];
+  const bc = t.balance>0.01?'#dc2626':t.balance<-0.01?'#16a34a':'#94a3b8';
+  const bg = idx%2===0?'#fff':'#f8fafc';
+  return `<div style="display:grid;grid-template-columns:90px 1fr 100px 100px 110px;border-bottom:1px solid #f1f5f9;background:${bg}">
+    <div style="padding:9px 10px;font-size:11px;color:#64748b;font-weight:600;display:flex;align-items:center">${fmtDate(t.date)}</div>
+    <div style="padding:9px 10px;display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+      <span style="${pc}">${typeLbls[t.type]}</span>
+      <span style="font-weight:600;font-size:12px">${t.desc}</span>
+      ${t.notes?`<span style="color:#94a3b8;font-size:10px">· ${t.notes}</span>`:''}
+    </div>
+    <div style="padding:9px 10px;font-size:12px;color:#dc2626;font-weight:700;display:flex;align-items:center;justify-content:flex-end">${t.debit>0?fmtNum(t.debit)+' '+s.curSymbol:'—'}</div>
+    <div style="padding:9px 10px;font-size:12px;color:#16a34a;font-weight:700;display:flex;align-items:center;justify-content:flex-end">${t.credit>0?fmtNum(t.credit)+' '+s.curSymbol:'—'}</div>
+    <div style="padding:9px 10px;font-size:12px;font-weight:800;color:${bc};display:flex;align-items:center;justify-content:flex-end">${fmtNum(Math.abs(t.balance))} ${s.curSymbol}</div>
+  </div>`;
+}).join('');
+
+container.innerHTML = `
+<div style="background:#0f172a;color:#fff;padding:26px 28px;position:relative;overflow:hidden">
+  <div style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:85px;font-weight:900;opacity:.05;-webkit-print-color-adjust:exact">${s.curSymbol}</div>
+  <div style="position:relative;display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+    <div>
+      <div style="font-size:9px;opacity:.4;letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px">كشف حساب</div>
+      <div style="font-size:20px;font-weight:900">${client.name}</div>
+      <div style="font-size:11px;font-weight:700;color:#93c5fd;margin-top:3px">📂 ${s.name}</div>
+      <div style="font-size:10px;opacity:.5;margin-top:5px">${client.city?'📍 '+client.city+' ':''}${client.phone?'📞 '+client.phone+' ':''} 📅 ${todayStr}</div>
+    </div>
+    <div style="text-align:left">
+      <div style="font-size:9px;opacity:.4;margin-bottom:4px">الرصيد الحالي</div>
+      <div style="font-size:26px;font-weight:900;color:${finalBal>0?'#fca5a5':finalBal<0?'#86efac':'#94a3b8'}">${fmtNum(Math.abs(finalBal))} ${s.curSymbol}</div>
+      <div style="font-size:11px;opacity:.5;margin-top:3px;text-align:left">${finalBal>0?'مدين':finalBal<0?'دائن':'مسوّى'}</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.1);border-radius:10px;overflow:hidden;margin-top:16px">
+    <div style="background:#1e293b;padding:11px;text-align:center"><div style="font-size:15px;font-weight:800;color:#f87171">${fmtNum(totalDeb)} ${s.curSymbol}</div><div style="font-size:9px;opacity:.5;margin-top:2px">إجمالي المدين</div></div>
+    <div style="background:#1e293b;padding:11px;text-align:center"><div style="font-size:15px;font-weight:800;color:#4ade80">${fmtNum(totalCred)} ${s.curSymbol}</div><div style="font-size:9px;opacity:.5;margin-top:2px">إجمالي الدائن</div></div>
+    <div style="background:#1e293b;padding:11px;text-align:center"><div style="font-size:15px;font-weight:800;color:#94a3b8">${transactions.length}</div><div style="font-size:9px;opacity:.5;margin-top:2px">عدد الحركات</div></div>
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:90px 1fr 100px 100px 110px;background:#f1f5f9;border-bottom:2px solid #e2e8f0">
+  <div style="padding:9px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">التاريخ</div>
+  <div style="padding:9px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">البيان</div>
+  <div style="padding:9px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:right">مدين</div>
+  <div style="padding:9px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:right">دائن</div>
+  <div style="padding:9px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:right">الرصيد</div>
+</div>
+<div style="background:#fff">${rowsHtml}</div>
+<div style="background:#0f172a;color:#fff;padding:14px 28px;display:flex;justify-content:space-between;align-items:center">
+  <div style="font-size:10px;opacity:.4">${client.notes||'صدر بتاريخ '+todayStr}</div>
+  <div style="text-align:left">
+    <div style="font-size:9px;opacity:.4;margin-bottom:3px">صافي الرصيد</div>
+    <div style="font-size:20px;font-weight:900;color:${finalBal>0?'#fca5a5':finalBal<0?'#86efac':'#94a3b8'}">${fmtNum(Math.abs(finalBal))} ${s.curSymbol}</div>
+  </div>
+</div>`;
+
+document.body.appendChild(container);
+
+// تحويل HTML → Canvas → PDF
+html2canvas(container, {
+  scale: 2,
+  useCORS: true,
+  backgroundColor: '#ffffff',
+  logging: false,
+  windowWidth: 820,
+}).then(canvas => {
+  document.body.removeChild(container);
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const pageW  = pdf.internal.pageSize.getWidth();
+  const pageH  = pdf.internal.pageSize.getHeight();
+  const margin = 8;
+  const imgW   = pageW - margin * 2;
+  const imgH   = (canvas.height * imgW) / canvas.width;
+  const imgData = canvas.toDataURL('image/jpeg', 0.9);
+
+  // تقسيم على صفحات إذا لزم
+  let posY = margin;
+  let remaining = imgH;
+  let srcY = 0;
+  const ratio = canvas.width / imgW;
+
+  while (remaining > 0) {
+    const sliceH = Math.min(remaining, pageH - margin * 2);
+    const srcH   = sliceH * ratio;
+    // رسم جزء من الصورة في هذه الصفحة
+    const sliceCanvas = document.createElement('canvas');
+    sliceCanvas.width  = canvas.width;
+    sliceCanvas.height = srcH;
+    sliceCanvas.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+    const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.9);
+    pdf.addImage(sliceData, 'JPEG', margin, posY, imgW, sliceH);
+    remaining -= sliceH;
+    srcY      += srcH;
+    if (remaining > 0) { pdf.addPage(); posY = margin; }
+  }
+
+  pdf.save(fileName);
+  toast('✅ تم تحميل PDF بنجاح: ' + fileName, 'success', 4000);
+}).catch(err => {
+  document.body.removeChild(container);
+  toast('❌ فشل إنشاء PDF: ' + err.message, 'error');
+  console.error(err);
+});
+}
+
+
 function exportStatementExcel(clientId) {
 if (typeof XLSX === 'undefined') { 
 toast('❌ لم تُحمّل مكتبة Excel', 'error'); 
@@ -2367,29 +2631,39 @@ openClientModal(id);
 
 function saveClient() {
 const name = document.getElementById('cl_name').value.trim();
-if (!name) { 
-toast('⚠ الاسم مطلوب', 'error'); 
-return; 
+if (!name) {
+  toast('⚠ الاسم مطلوب', 'error');
+  return;
 }
-
-const data = {
-name,
-phone: document.getElementById('cl_phone').value.trim(),
-city: document.getElementById('cl_city').value.trim(),
-balance: Number(document.getElementById('cl_balance').value) || 0,
-notes: document.getElementById('cl_notes').value.trim(),
-};
-
 const sec = DB[currentSection];
-if (editingClientId) {
-const idx = sec.clients.findIndex(c => c.id === editingClientId);
-if (idx >= 0) sec.clients[idx] = { ...sec.clients[idx], ...data };
-toast('✅ تم تعديل البيانات بنجاح', 'success');
-} else {
-sec.clients.push({ id: uid(), ...data });
-toast('✅ تم إضافة العميل بنجاح', 'success');
+// ── منع تكرار الاسم ──
+const isDuplicate = sec.clients.some(c =>
+  c.name.trim().toLowerCase() === name.toLowerCase() && c.id !== editingClientId
+);
+if (isDuplicate) {
+  toast('⚠ هذا الاسم موجود مسبقاً في القسم — اختر اسماً مختلفاً', 'error');
+  const inp = document.getElementById('cl_name');
+  inp.style.borderColor = '#dc2626';
+  inp.style.boxShadow = '0 0 0 3px rgba(220,38,38,.15)';
+  setTimeout(() => { inp.style.borderColor = ''; inp.style.boxShadow = ''; }, 2500);
+  return;
 }
-
+const data = {
+  name,
+  phone: document.getElementById('cl_phone').value.trim(),
+  city: document.getElementById('cl_city').value.trim(),
+  balance: Number(document.getElementById('cl_balance').value) || 0,
+  notes: document.getElementById('cl_notes').value.trim(),
+  updatedAt: Date.now(),
+};
+if (editingClientId) {
+  const idx = sec.clients.findIndex(c => c.id === editingClientId);
+  if (idx >= 0) sec.clients[idx] = { ...sec.clients[idx], ...data };
+  toast('✅ تم تعديل البيانات بنجاح', 'success');
+} else {
+  sec.clients.push({ id: uid(), ...data });
+  toast('✅ تم إضافة العميل بنجاح', 'success');
+}
 saveDB();
 closeModal('clientModal');
 renderClientsTab();
@@ -2457,7 +2731,7 @@ return `<tr>
 <td>${inv.discount > 0 ? fmtNum(inv.discount) + ' ' + s.curSymbol : '—'}</td>
 <td><strong class="amount-positive">${fmtNum(inv.total)} ${s.curSymbol}</strong></td>
 <td><span class="badge badge-${s.currency==='USD'?'info':'success'}">${s.currency}</span></td>
-<td>${inv.image ? imgThumb(inv.image) : '<span style="color:var(--gray-300);font-size:11px">—</span>'}</td>
+<td>${inv.image ? imgThumbWithDelete(inv.image,'invoice',inv.id) : '<span style="color:var(--gray-300);font-size:11px">—</span>'}</td>
 <td>
 <div style="display:flex;gap:5px;flex-wrap:wrap">
 <button class="btn btn-xs btn-primary btn-icon" title="طباعة" onclick="printInvoice('${inv.id}')">
@@ -2489,7 +2763,7 @@ let invoices = sec.invoices.filter(i => !i.deleted);
 if (q) {
 invoices = invoices.filter(i => {
 const c = sec.clients.find(x => x.id === i.clientId);
-return (c && c.name.toLowerCase().includes(q.toLowerCase())) || i.num.toString().includes(q);
+return (c && c.name.toLowerCase().includes(q.toLowerCase())) || (i.num||"").toString().includes(q) || (i.notes||"").toLowerCase().includes(q.toLowerCase());
 });
 }
 invoices.sort((a,b) => b.date.localeCompare(a.date));
@@ -2512,7 +2786,7 @@ return `<tr>
 <td>${inv.discount > 0 ? fmtNum(inv.discount) + ' ' + s.curSymbol : '—'}</td>
 <td><strong class="amount-positive">${fmtNum(inv.total)} ${s.curSymbol}</strong></td>
 <td><span class="badge badge-${s.currency==='USD'?'info':'success'}">${s.currency}</span></td>
-<td>${inv.image ? imgThumb(inv.image) : '<span style="color:var(--gray-300);font-size:11px">—</span>'}</td>
+<td>${inv.image ? imgThumbWithDelete(inv.image,'invoice',inv.id) : '<span style="color:var(--gray-300);font-size:11px">—</span>'}</td>
 <td>
 <div style="display:flex;gap:5px;flex-wrap:wrap">
 <button class="btn btn-xs btn-primary btn-icon" onclick="printInvoice('${inv.id}')">
@@ -2682,7 +2956,8 @@ subtotal,
 discount,
 total,
 notes: document.getElementById('inv_notes').value.trim(),
-image: document.getElementById('inv_image_data').value || null
+image: document.getElementById('inv_image_data').value || null,
+updatedAt: Date.now(),
 };
 
 const sec = DB[currentSection];
@@ -2852,7 +3127,7 @@ return `<tr>
 <td><strong class="amount-negative">${fmtNum(pay.amount)} ${s.curSymbol}</strong></td>
 <td><span class="badge badge-info">${pay.method || 'كاش'}</span></td>
 <td style="font-size:12px;color:var(--gray-600)">${pay.notes || '—'}</td>
-<td>${pay.image ? imgThumb(pay.image) : '<span style="color:var(--gray-300);font-size:11px">—</span>'}</td>
+<td>${pay.image ? imgThumbWithDelete(pay.image,'payment',pay.id) : '<span style="color:var(--gray-300);font-size:11px">—</span>'}</td>
 <td>
 <div style="display:flex;gap:5px">
 <button class="btn btn-xs btn-info btn-icon" title="كشف الحساب" onclick="viewClientStatement('${pay.clientId}')">
@@ -2884,7 +3159,7 @@ let payments = sec.payments.filter(p => !p.deleted);
 if (q) {
 payments = payments.filter(p => {
 const c = sec.clients.find(x => x.id === p.clientId);
-return (c && c.name.toLowerCase().includes(q.toLowerCase())) || (p.method||'').includes(q) || (p.notes||'').includes(q);
+return (c && c.name.toLowerCase().includes(q.toLowerCase())) || (p.method||'').includes(q) || (p.notes||'').toLowerCase().includes(q.toLowerCase());
 });
 }
 payments.sort((a,b) => b.date.localeCompare(a.date));
@@ -2905,7 +3180,7 @@ return `<tr>
 <td><strong class="amount-negative">${fmtNum(pay.amount)} ${s.curSymbol}</strong></td>
 <td><span class="badge badge-info">${pay.method || 'كاش'}</span></td>
 <td style="font-size:12px;color:var(--gray-600)">${pay.notes || '—'}</td>
-<td>${pay.image ? imgThumb(pay.image) : '<span style="color:var(--gray-300);font-size:11px">—</span>'}</td>
+<td>${pay.image ? imgThumbWithDelete(pay.image,'payment',pay.id) : '<span style="color:var(--gray-300);font-size:11px">—</span>'}</td>
 <td>
 <div style="display:flex;gap:5px">
 <button class="btn btn-xs btn-info btn-icon" title="كشف الحساب" onclick="viewClientStatement('${pay.clientId}')">
@@ -3092,7 +3367,8 @@ function savePayment() {
         amount: finalAmount,
         method: document.getElementById('pay_method').value,
         notes: notesVal,
-        image: document.getElementById('pay_image_data').value || sec.payments[idx].image || null
+        image: document.getElementById('pay_image_data').value || sec.payments[idx].image || null,
+      updatedAt: Date.now()
       };
       toast('✅ تم تعديل الدفعة بنجاح', 'success');
     }
@@ -3104,7 +3380,8 @@ function savePayment() {
       method: document.getElementById('pay_method').value,
       notes: notesVal,
       image: document.getElementById('pay_image_data').value || null,
-      deleted: false
+      deleted: false,
+      updatedAt: Date.now(),
     });
     toast('✅ تم تسجيل الدفعة بنجاح', 'success');
   }
@@ -3222,7 +3499,8 @@ date,
 amount: value,
 type: document.getElementById('disc_type').value,
 reason: document.getElementById('disc_reason').value.trim(),
-deleted: false
+deleted: false,
+updatedAt: Date.now(),
 };
 
 const sec = DB[currentSection];
@@ -3324,6 +3602,9 @@ function openBulkPaymentModal() {
   document.getElementById('bulk_date').value = today();
   document.getElementById('bulk_method').value = 'كاش';
   document.getElementById('bulk_notes').value = '';
+  document.getElementById('bulk_currency').value = 'section';
+  document.getElementById('bulk_currency_hint').style.display = 'none';
+  document.getElementById('bulkConversionNote').style.display = 'none';
 
   const list = document.getElementById('bulkClientsList');
   list.innerHTML = sec.clients.map(c => {
@@ -3366,17 +3647,37 @@ function bulkSelectAll(val) {
   });
 }
 
+function bulkCurrencyChanged() {
+  const cur = document.getElementById('bulk_currency').value;
+  const hint = document.getElementById('bulk_currency_hint');
+  hint.style.display = cur === 'USD' ? 'block' : 'none';
+  updateBulkTotal();
+}
+
 function updateBulkTotal() {
   const sec = DB[currentSection];
   const s = SECTIONS[currentSection];
-  let total = 0;
+  const cur = document.getElementById('bulk_currency')?.value || 'section';
+  const USD_RATE = 3.67;
+  let totalRaw = 0, totalConverted = 0;
   sec.clients.forEach(c => {
     const chk = document.getElementById('bulk_chk_' + c.id);
     if (chk?.checked) {
-      total += Number(document.getElementById('bulk_amt_' + c.id)?.value || 0);
+      const amt = Number(document.getElementById('bulk_amt_' + c.id)?.value || 0);
+      totalRaw += amt;
+      totalConverted += cur === 'USD' ? parseFloat((amt * USD_RATE).toFixed(2)) : amt;
     }
   });
-  document.getElementById('bulkTotal').textContent = fmtNum(total) + ' ' + s.curSymbol;
+  const displayTotal = cur === 'USD' ? totalConverted : totalRaw;
+  document.getElementById('bulkTotal').textContent = fmtNum(displayTotal) + ' ' + s.curSymbol;
+  const note = document.getElementById('bulkConversionNote');
+  const noteText = document.getElementById('bulkConversionText');
+  if (cur === 'USD' && totalRaw > 0) {
+    note.style.display = 'block';
+    noteText.textContent = `${fmtNum(totalRaw)} $ × ${USD_RATE} = ${fmtNum(totalConverted)} ${s.curSymbol} بعد التحويل`;
+  } else {
+    note.style.display = 'none';
+  }
 }
 
 function saveBulkPayment() {
@@ -3384,21 +3685,32 @@ function saveBulkPayment() {
   const date = document.getElementById('bulk_date').value;
   const method = document.getElementById('bulk_method').value;
   const notes = document.getElementById('bulk_notes').value.trim();
+  const cur = document.getElementById('bulk_currency')?.value || 'section';
+  const USD_RATE = 3.67;
 
   if (!date) { toast('⚠ التاريخ مطلوب', 'error'); return; }
 
-  let count = 0;
+  let count = 0, totalAmt = 0;
   sec.clients.forEach(c => {
     const chk = document.getElementById('bulk_chk_' + c.id);
     if (!chk?.checked) return;
-    const amount = Number(document.getElementById('bulk_amt_' + c.id)?.value || 0);
-    if (amount <= 0) return;
+    const rawAmt = Number(document.getElementById('bulk_amt_' + c.id)?.value || 0);
+    if (rawAmt <= 0) return;
+
+    // تحويل الدولار إلى درهم إذا لزم
+    const finalAmt = cur === 'USD' ? parseFloat((rawAmt * USD_RATE).toFixed(2)) : rawAmt;
+    const currencyNote = cur === 'USD' ? ` [${fmtNum(rawAmt)}$ × ${USD_RATE} = ${fmtNum(finalAmt)} د.إ]` : '';
+    const finalNotes = (notes || 'دفعة جماعية') + currencyNote;
 
     sec.payments.push({
-      id: uid(), clientId: c.id, date, amount, method,
-      notes: notes || 'دفعة جماعية', image: null, deleted: false
+      id: uid(), clientId: c.id, date,
+      amount: finalAmt,
+      method,
+      notes: finalNotes,
+      image: null, deleted: false,
+      updatedAt: Date.now(),
     });
-    count++;
+    count++; totalAmt += finalAmt;
   });
 
   if (count === 0) { toast('⚠ لم تُحدَّد أي دفعة بمبلغ أكبر من صفر', 'warning'); return; }
@@ -3406,7 +3718,8 @@ function saveBulkPayment() {
   saveDB();
   closeModal('bulkPaymentModal');
   renderPaymentsTab();
-  toast(`✅ تم تسجيل ${count} دفعة بنجاح`, 'success');
+  const s = SECTIONS[currentSection];
+  toast(`✅ تم تسجيل ${count} دفعة — إجمالي: ${fmtNum(totalAmt)} ${s.curSymbol}`, 'success', 4000);
 }
 
 /* ════════════════════════════════════════════════════
@@ -3700,7 +4013,7 @@ async function syncPull(showToast = true) {
     const remoteTs = parsed._ts || 0;
     const localTs  = DB._lastSyncTs || 0;
 
-    if (remoteTs <= localTs && SYNC.lastPullHash) {
+    if (remoteTs > 0 && remoteTs <= localTs && SYNC.lastPullHash) {
       syncUpdateBar('ok', 'بياناتك أحدث');
       return;
     }
@@ -3716,32 +4029,43 @@ async function syncPull(showToast = true) {
 
         if (!local) { DB[sid] = remote; merged = true; return; }
 
-        // دمج العناصر: نضيف الغير موجودة محلياً
+        // دمج العناصر مع دعم updatedAt للتحديث الصحيح
         ['invoices','payments','discounts'].forEach(key => {
           if (!Array.isArray(remote[key])) return;
           if (!Array.isArray(local[key])) local[key] = [];
           remote[key].forEach(remItem => {
-            const exists = local[key].find(l => l.id === remItem.id);
-            if (!exists) {
-              // استعادة صورة محلية إذا كانت placeholder
+            const existsIdx = local[key].findIndex(l => l.id === remItem.id);
+            if (existsIdx === -1) {
               if (remItem.image === '§IMG§') remItem.image = null;
               local[key].push(remItem);
               merged = true;
             } else {
-              // تحديث حالة الحذف إذا حُذف من الجهاز الآخر
+              const exists = local[key][existsIdx];
               if (remItem.deleted && !exists.deleted) {
-                exists.deleted = true;
+                exists.deleted = true; merged = true;
+              }
+              if (remItem.updatedAt && (!exists.updatedAt || remItem.updatedAt > exists.updatedAt)) {
+                const savedImg = exists.image;
+                Object.assign(exists, remItem);
+                if (remItem.image === '§IMG§') exists.image = savedImg || null;
                 merged = true;
               }
             }
           });
         });
 
-        // دمج العملاء
+        // دمج العملاء مع تحديث بيانات الموجودين إذا كانت البعيدة أحدث
         if (Array.isArray(remote.clients)) {
           remote.clients.forEach(remC => {
-            const exists = local.clients.find(l => l.id === remC.id);
-            if (!exists) { local.clients.push(remC); merged = true; }
+            const existsIdx = local.clients.findIndex(l => l.id === remC.id);
+            if (existsIdx === -1) {
+              local.clients.push(remC); merged = true;
+            } else {
+              const exists = local.clients[existsIdx];
+              if (remC.updatedAt && (!exists.updatedAt || remC.updatedAt > exists.updatedAt)) {
+                Object.assign(exists, remC); merged = true;
+              }
+            }
           });
         }
       });
@@ -4001,6 +4325,9 @@ window.previewPayImage = previewPayImage;
 window.clearPayImage = clearPayImage;
 window.openImgFullscreen = openImgFullscreen;
 window.saveDBSync = saveDBSync;
+window.cleanStorage = cleanStorage;
+window.downloadStatementPDF = downloadStatementPDF;
+window.downloadAllClientsPDF = downloadAllClientsPDF;
 window.openBulkPaymentModal = openBulkPaymentModal;
 window.openSyncModal = openSyncModal;
 window.syncPush = syncPush;
@@ -4015,9 +4342,122 @@ window.saveBulkPayment = saveBulkPayment;
 window.bulkRowToggle = bulkRowToggle;
 window.bulkSelectAll = bulkSelectAll;
 window.updateBulkTotal = updateBulkTotal;
+window.bulkCurrencyChanged = bulkCurrencyChanged;
+window.deleteItemImage = deleteItemImage;
+window.imgThumbWithDelete = imgThumbWithDelete;
 window.restoreFromIndexedDB = restoreFromIndexedDB;
 
 console.log('✨ جميع الوظائف تم تحميلها بنجاح - نظام الحفظ المُعزَّز نشط');
+
+function downloadAllClientsPDF() {
+const sec = DB[currentSection];
+const s   = SECTIONS[currentSection];
+const todayStr = new Date().toLocaleDateString('ar-EG', {year:'numeric',month:'long',day:'numeric'});
+
+// فقط العملاء الظاهرين
+const container2 = document.getElementById('clientRowsContainer');
+const hideZero = container2 && container2.classList.contains('hide-zero-clients');
+const clients = hideZero
+  ? sec.clients.filter(c => Math.abs(getClientBalance(currentSection, c.id)) >= 0.01)
+  : sec.clients;
+
+let grandDebit=0, grandCredit=0, grandBal=0;
+const rowsHtml = clients.map((c,idx) => {
+  const totalInv  = sec.invoices.filter(i=>i.clientId===c.id&&!i.deleted).reduce((a,i)=>a+Number(i.total||0),0);
+  const totalPay  = sec.payments.filter(p=>p.clientId===c.id&&!p.deleted).reduce((a,p)=>a+Number(p.amount||0),0);
+  const totalDisc = (sec.discounts||[]).filter(d=>d.clientId===c.id&&!d.deleted).reduce((a,d)=>a+Number(d.amount||0),0);
+  const bal = getClientBalance(currentSection, c.id);
+  grandDebit  += totalInv + Number(c.balance>0?c.balance:0);
+  grandCredit += totalPay + totalDisc + Number(c.balance<0?Math.abs(c.balance):0);
+  grandBal    += bal;
+  const bc = bal>0.01?'#dc2626':bal<-0.01?'#16a34a':'#94a3b8';
+  const bl = bal>0.01?'مدين':bal<-0.01?'دائن':'مسوّى';
+  const bg = idx%2===0?'#fff':'#f8fafc';
+  return `<div style="display:grid;grid-template-columns:30px 1fr 105px 105px 105px 80px;border-bottom:1px solid #f1f5f9;background:${bg}">
+    <div style="padding:8px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center">${idx+1}</div>
+    <div style="padding:8px 10px;display:flex;flex-direction:column;justify-content:center">
+      <span style="font-weight:700;color:#1e293b;font-size:12px">${c.name}</span>
+      ${c.city?`<span style="font-size:10px;color:#94a3b8">📍 ${c.city}</span>`:''}
+    </div>
+    <div style="padding:8px 10px;font-size:12px;color:#dc2626;font-weight:700;display:flex;align-items:center;justify-content:flex-end">${fmtNum(totalInv)} ${s.curSymbol}</div>
+    <div style="padding:8px 10px;font-size:12px;color:#16a34a;font-weight:700;display:flex;align-items:center;justify-content:flex-end">${fmtNum(totalPay+totalDisc)} ${s.curSymbol}</div>
+    <div style="padding:8px 10px;font-size:12px;font-weight:800;color:${bc};display:flex;align-items:center;justify-content:flex-end">${fmtNum(Math.abs(bal))} ${s.curSymbol}</div>
+    <div style="padding:8px 10px;display:flex;align-items:center;justify-content:center">
+      <span style="background:${bal>0.01?'#fee2e2':bal<-0.01?'#dcfce7':'#f1f5f9'};color:${bc};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${bl}</span>
+    </div>
+  </div>`;
+}).join('');
+
+toast('⏳ جاري إنشاء PDF...', 'info', 3000);
+
+const wrap = document.createElement('div');
+wrap.style.cssText = 'position:fixed;top:-99999px;left:0;width:820px;background:#fff;font-family:Segoe UI,Cairo,Arial,sans-serif;direction:rtl;color:#0f172a;z-index:-1';
+wrap.innerHTML = `
+<div style="background:#0f172a;color:#fff;padding:24px 28px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div>
+      <div style="font-size:9px;opacity:.4;letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px">كشف حساب شامل</div>
+      <div style="font-size:19px;font-weight:900">${s.name}</div>
+      <div style="font-size:10px;opacity:.5;margin-top:4px">📅 ${todayStr} · ${clients.length} عميل</div>
+    </div>
+    <div style="text-align:left">
+      <div style="font-size:9px;opacity:.4;margin-bottom:4px">إجمالي المستحق</div>
+      <div style="font-size:24px;font-weight:900;color:${grandBal>0.01?'#fca5a5':grandBal<-0.01?'#86efac':'#94a3b8'}">${fmtNum(Math.abs(grandBal))} ${s.curSymbol}</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.1);border-radius:10px;overflow:hidden">
+    <div style="background:#1e293b;padding:10px;text-align:center"><div style="font-size:14px;font-weight:800;color:#f87171">${fmtNum(grandDebit)} ${s.curSymbol}</div><div style="font-size:9px;opacity:.5;margin-top:2px">إجمالي المدين</div></div>
+    <div style="background:#1e293b;padding:10px;text-align:center"><div style="font-size:14px;font-weight:800;color:#4ade80">${fmtNum(grandCredit)} ${s.curSymbol}</div><div style="font-size:9px;opacity:.5;margin-top:2px">إجمالي الدائن</div></div>
+    <div style="background:#1e293b;padding:10px;text-align:center"><div style="font-size:14px;font-weight:800;color:#94a3b8">${clients.length}</div><div style="font-size:9px;opacity:.5;margin-top:2px">عدد العملاء</div></div>
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:30px 1fr 105px 105px 105px 80px;background:#f1f5f9;border-bottom:2px solid #e2e8f0">
+  <div style="padding:8px;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase">#</div>
+  <div style="padding:8px 10px;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase">العميل</div>
+  <div style="padding:8px 10px;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:right">الفواتير</div>
+  <div style="padding:8px 10px;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:right">الدفعات</div>
+  <div style="padding:8px 10px;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:right">الرصيد</div>
+  <div style="padding:8px 10px;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:center">الحالة</div>
+</div>
+<div>${rowsHtml}</div>
+<div style="background:#0f172a;color:#fff;padding:14px 28px;display:flex;justify-content:space-between;align-items:center">
+  <div style="font-size:10px;opacity:.4">صدر بتاريخ ${todayStr}</div>
+  <div style="display:flex;gap:20px">
+    <div style="text-align:center"><div style="font-size:9px;opacity:.4;margin-bottom:2px">المدين</div><div style="font-size:14px;font-weight:800;color:#f87171">${fmtNum(grandDebit)} ${s.curSymbol}</div></div>
+    <div style="text-align:center"><div style="font-size:9px;opacity:.4;margin-bottom:2px">الدائن</div><div style="font-size:14px;font-weight:800;color:#4ade80">${fmtNum(grandCredit)} ${s.curSymbol}</div></div>
+    <div style="text-align:center"><div style="font-size:9px;opacity:.4;margin-bottom:2px">الصافي</div><div style="font-size:16px;font-weight:900;color:${grandBal>0.01?'#fca5a5':grandBal<-0.01?'#86efac':'#94a3b8'}">${fmtNum(Math.abs(grandBal))} ${s.curSymbol}</div></div>
+  </div>
+</div>`;
+
+document.body.appendChild(wrap);
+const fileName = `كشف جميع العملاء - ${s.name}.pdf`;
+
+html2canvas(wrap, { scale:2, useCORS:true, backgroundColor:'#ffffff', logging:false, windowWidth:820 }).then(canvas => {
+  document.body.removeChild(wrap);
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const pageW=pdf.internal.pageSize.getWidth(), pageH=pdf.internal.pageSize.getHeight();
+  const margin=8, imgW=pageW-margin*2;
+  const imgH=(canvas.height*imgW)/canvas.width;
+  const ratio=canvas.width/imgW;
+  let posY=margin, remaining=imgH, srcY=0;
+  while(remaining>0){
+    const sliceH=Math.min(remaining,pageH-margin*2);
+    const srcH=sliceH*ratio;
+    const sc=document.createElement('canvas');
+    sc.width=canvas.width; sc.height=srcH;
+    sc.getContext('2d').drawImage(canvas,0,srcY,canvas.width,srcH,0,0,canvas.width,srcH);
+    pdf.addImage(sc.toDataURL('image/jpeg',0.9),'JPEG',margin,posY,imgW,sliceH);
+    remaining-=sliceH; srcY+=srcH;
+    if(remaining>0){pdf.addPage();posY=margin;}
+  }
+  pdf.save(fileName);
+  toast('✅ تم تحميل PDF: '+fileName,'success',4000);
+}).catch(err=>{
+  document.body.removeChild(wrap);
+  toast('❌ فشل: '+err.message,'error');
+});
+}
 
 function toggleZeroClients(){
   var container=document.getElementById("clientRowsContainer");
