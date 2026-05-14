@@ -336,6 +336,99 @@ body{background:#fff}
 
 <div class="toast-container" id="toastContainer"></div>
 
+
+<!-- FACTORY INVOICE MODAL -->
+<div class="modal-overlay" id="factoryInvModal">
+<div class="modal modal-lg">
+<div class="modal-header">
+  <h3><i class="fa fa-industry" style="color:#7c2d12"></i> إنشاء فاتورة المصنع</h3>
+  <button class="close-btn" onclick="closeModal('factoryInvModal')"><i class="fa fa-times"></i></button>
+</div>
+<div class="modal-body">
+  <!-- معلومات الفاتورة المصدر -->
+  <div style="background:#f0f9ff;border:1.5px solid #7dd3fc;border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;gap:24px;flex-wrap:wrap">
+    <div><span style="font-size:11px;color:#0369a1;font-weight:700">فاتورة العميل</span><br><strong id="fi_src_num" style="font-size:16px;color:#1e293b"></strong></div>
+    <div><span style="font-size:11px;color:#0369a1;font-weight:700">إجمالي الفاتورة</span><br><strong id="fi_src_total" style="font-size:16px;color:#dc2626"></strong></div>
+    <div><span style="font-size:11px;color:#0369a1;font-weight:700">العميل</span><br><strong id="fi_src_client" style="font-size:14px;color:#1e293b"></strong></div>
+    <div id="fi_usd_note" style="display:none;background:#fef3c7;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#92400e;align-self:center">
+      <i class="fa fa-info-circle"></i> الفاتورة بالدولار — سيتم التحويل × 3.67 إلى د.إ
+    </div>
+  </div>
+
+  <!-- جدول العمولات المتعددة -->
+  <div style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong style="font-size:13px;color:#374151"><i class="fa fa-list-ul"></i> أصناف العمولة</strong>
+      <button type="button" class="btn btn-sm btn-outline" onclick="addFiCommRow()"><i class="fa fa-plus"></i> إضافة صنف</button>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:#f8fafc">
+          <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #e2e8f0;font-size:11px;color:#64748b">الصنف / الوصف</th>
+          <th style="padding:8px 10px;text-align:center;border-bottom:2px solid #e2e8f0;font-size:11px;color:#64748b;width:100px">عدد القطع</th>
+          <th id="fi_th_rate" style="padding:8px 10px;text-align:center;border-bottom:2px solid #e2e8f0;font-size:11px;color:#64748b;width:120px">عمولة / قطعة (د.إ)</th>
+          <th id="fi_th_total" style="padding:8px 10px;text-align:center;border-bottom:2px solid #e2e8f0;font-size:11px;color:#64748b;width:110px">إجمالي العمولة</th>
+          <th style="width:36px;border-bottom:2px solid #e2e8f0"></th>
+        </tr>
+      </thead>
+      <tbody id="fi_comm_rows"></tbody>
+      <tfoot>
+        <tr style="background:#fef3c7">
+          <td colspan="3" style="padding:9px 10px;font-weight:700;color:#92400e;font-size:13px" id="fi_tfoot_label"><i class="fa fa-sigma"></i> إجمالي العمولة</td>
+          <td style="padding:9px 10px;text-align:center;font-weight:800;color:#d97706;font-size:14px" id="fi_total_comm">0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- معاينة النتيجة -->
+  <div id="fi_preview" style="border-radius:12px;overflow:hidden;border:1.5px solid #e2e8f0">
+    <div style="background:#1e293b;color:#fff;padding:12px 18px;font-size:13px;font-weight:700">
+      <i class="fa fa-calculator"></i> معاينة فاتورة المصنع
+    </div>
+    <div style="padding:14px 18px;display:flex;flex-direction:column;gap:8px;background:#f8fafc">
+      <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#fff;border-radius:8px;border:1px solid #e2e8f0">
+        <span style="color:#64748b">إجمالي فاتورة العميل</span>
+        <strong id="fi_pre_total" style="color:#1e293b"></strong>
+      </div>
+      <div id="fi_pre_usd_conv_row" style="display:none;padding:6px 12px;background:#fef3c7;border-radius:8px;font-size:12px;color:#92400e;font-weight:600">
+        <i class="fa fa-arrows-rotate"></i> <span id="fi_pre_usd_conv"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#fff;border-radius:8px;border:1px solid #fbbf24">
+        <span style="color:#92400e"><i class="fa fa-minus-circle"></i> إجمالي العمولات</span>
+        <strong id="fi_pre_commission" style="color:#d97706"></strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px">
+        <span style="color:#fff;font-weight:700"><i class="fa fa-industry"></i> فاتورة المصنع (الناتج)</span>
+        <strong id="fi_pre_factory" style="color:#4ade80;font-size:16px"></strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- تاريخ وملاحظات -->
+  <div class="form-grid" style="margin-top:14px">
+    <div class="form-group">
+      <label>تاريخ فاتورة المصنع</label>
+      <input id="fi_date" type="date">
+    </div>
+    <div class="form-group">
+      <label>ملاحظات (اختياري)</label>
+      <input id="fi_notes" placeholder="ملاحظة...">
+    </div>
+  </div>
+  <input type="hidden" id="fi_src_inv_id">
+  <input type="hidden" id="fi_src_section">
+</div>
+<div class="modal-footer">
+  <button class="btn btn-outline" onclick="closeModal('factoryInvModal')">إلغاء</button>
+  <button class="btn btn-success" id="fi_confirm_btn" onclick="saveFactoryInvoice()">
+    <i class="fa fa-industry"></i> تأكيد وإنشاء فاتورة المصنع
+  </button>
+</div>
+</div>
+</div>
+
 <!-- Lock Screen -->
 <div class="lock-overlay" id="lockOverlay">
 <div class="lock-box">
@@ -570,7 +663,7 @@ body{background:#fff}
 <button class="close-btn" onclick="closeModal('printModal')"><i class="fa fa-times"></i></button>
 </div>
 </div>
-<div class="modal-body" id="printContent"></div>
+<div class="modal-body" id="printArea"></div>
 </div>
 </div>
 
@@ -648,7 +741,7 @@ body{background:#fff}
       <div class="sync-step"><div class="sync-step-num">1</div><div>اذهب إلى <strong>github.com</strong> → اضغط على صورتك (أعلى اليمين) → <strong>Settings</strong></div></div>
       <div class="sync-step"><div class="sync-step-num">2</div><div>من القائمة اليسرى اختر <strong>Developer settings</strong> (آخر خيار)</div></div>
       <div class="sync-step"><div class="sync-step-num">3</div><div>اختر <strong>Personal access tokens → Tokens (classic)</strong> → اضغط <strong>Generate new token (classic)</strong></div></div>
-      <div class="sync-step"><div class="sync-step-num">4</div><div>في Note اكتب: <code style="background:rgba(255,255,255,.15);padding:2px 6px;border-radius:4px">ميامي-sync</code> — فعّل <strong>gist</strong> فقط ✓ — اضغط <strong>Generate token</strong></div></div>
+      <div class="sync-step"><div class="sync-step-num">4</div><div>في Note اكتب: <code style="background:rgba(255,255,255,.15);padding:2px 6px;border-radius:4px">ميامي-sync</code> — فعّل <strong>gist</strong> فقط ✓ (تأكد أنه <strong>لا</strong> read-only) — اضغط <strong>Generate token</strong></div></div>
       <div class="sync-step"><div class="sync-step-num">5</div><div>انسخ الـ Token (يبدأ بـ <code style="background:rgba(255,255,255,.15);padding:2px 6px;border-radius:4px">ghp_</code>) والصقه هنا:</div></div>
     </div>
     <input class="sync-input" id="syncTokenInput" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
@@ -715,7 +808,13 @@ ishtar_clients: { id:'ishtar_clients', name:'عملاء عشتار',            
 const DEFAULT_DATA = {
 miami_factory: {
 clients: [{id:'mf1', name:'جلابية ميامي - الحساب الرئيسي', phone:'', city:'الإمارات', balance:0, notes:''}],
-invoices:[], payments:[], discounts:[]
+invoices:[], payments:[], discounts:[],
+commissions:[
+  {id:'mfc1', client_price:12, factory_price:34, rate:0, desc:'جلابية $12 → مصنع 34 د.إ'},
+  {id:'mfc2', client_price:14, factory_price:38, rate:0, desc:'جلابية $14 → مصنع 38 د.إ'},
+  {id:'mfc3', client_price:16, factory_price:48, rate:0, desc:'جلابية $16 → مصنع 48 د.إ'},
+  {id:'mfc4', client_price:18, factory_price:55, rate:0, desc:'جلابية $18 → مصنع 55 د.إ'},
+]
 },
 miami_clients: {
 clients: [
@@ -734,7 +833,8 @@ invoices:[], payments:[], discounts:[]
 },
 kuwait_factory: {
 clients: [{id:'kf1', name:'جلابية كويتي و إماراتي - الحساب الرئيسي', phone:'', city:'الكويت/الإمارات', balance:0, notes:''}],
-invoices:[], payments:[], discounts:[]
+invoices:[], payments:[], discounts:[],
+commissions:[]
 },
 kuwait_clients: {
 clients: [
@@ -748,7 +848,8 @@ invoices:[], payments:[], discounts:[]
 },
 ishtar_factory: {
 clients: [{id:'if1', name:'مصنع عشتار - الحساب الرئيسي', phone:'', city:'', balance:0, notes:''}],
-invoices:[], payments:[], discounts:[]
+invoices:[], payments:[], discounts:[],
+commissions:[]
 },
 ishtar_clients: {
 clients: [],
@@ -808,6 +909,10 @@ function initDB() {
       });
       // أضف الـ discounts array لو مش موجود
       if (!DB[sid].discounts) DB[sid].discounts = [];
+      // أضف الـ commissions array لو مش موجود (ترقية البيانات القديمة)
+      if (!DB[sid].commissions) {
+        DB[sid].commissions = JSON.parse(JSON.stringify(DEFAULT_DATA[sid].commissions || []));
+      }
     }
   });
 
@@ -1681,6 +1786,9 @@ const tabs = [
 {id:'payments', icon:'fa-money-bill-wave', label:'المدفوعات'},
 {id:'discounts', icon:'fa-tag', label:'الخصومات'},
 {id:'statement', icon:'fa-file-lines', label:'كشف الحساب'},
+...(isSupplier
+  ? [{id:'commissions', icon:'fa-percent', label:'العمولات'}]
+  : [{id:'today', icon:'fa-calendar-day', label:'ملخص اليوم'}]),
 ];
 
 const st = getSectionStats(currentSection);
@@ -1727,6 +1835,8 @@ invoices: renderInvoicesTab,
 payments: renderPaymentsTab,
 discounts: renderDiscountsTab,
 statement: renderStatementTab,
+today: renderTodayTab,
+commissions: renderCommissionsTab,
 };
 (tabs[currentTab] || renderClientsTab)();
 }
@@ -2771,6 +2881,7 @@ toast('تم حذف العميل', 'info');
 function renderInvoicesTab(filterClientId) {
 const sec = DB[currentSection];
 const s = SECTIONS[currentSection];
+const isSupplier = s.type === 'supplier';
 let invoices = sec.invoices.filter(i => !i.deleted);
 if (filterClientId) invoices = invoices.filter(i => i.clientId === filterClientId);
 invoices.sort((a,b) => b.date.localeCompare(a.date));
@@ -2799,6 +2910,7 @@ const html = `
 <th>الصافي</th>
 <th>العملة</th>
 <th><i class="fa fa-paperclip"></i></th>
+${!isSupplier ? '<th><i class="fa fa-industry"></i></th>' : ''}
 <th>الإجراءات</th>
 </tr>
 </thead>
@@ -2815,8 +2927,10 @@ return `<tr>
 <td><strong class="amount-positive">${fmtNum(inv.total)} ${s.curSymbol}</strong></td>
 <td><span class="badge badge-${s.currency==='USD'?'info':'success'}">${s.currency}</span></td>
 <td>${inv.image ? imgThumbWithDelete(inv.image,'invoice',inv.id) : '<span style="color:var(--gray-300);font-size:11px">—</span>'}</td>
+${!isSupplier ? `<td>${inv.factoryInvNum ? '<span class="badge badge-warning" title="فاتورة المصنع"><i class=\'fa fa-industry\'></i> #'+inv.factoryInvNum+'</span>' : '<span style=\'color:var(--gray-300);font-size:11px\'>—</span>'}</td>` : ''}
 <td>
 <div style="display:flex;gap:5px;flex-wrap:wrap">
+${inv.srcInvId ? '<span class="badge badge-warning" title="مرتبطة بفاتورة عميل"><i class="fa fa-link"></i> مرتبطة</span>' : ''}
 <button class="btn btn-xs btn-primary btn-icon" title="طباعة" onclick="printInvoice('${inv.id}')">
 <i class="fa fa-print"></i>
 </button>
@@ -2826,6 +2940,9 @@ return `<tr>
 <button class="btn btn-xs btn-danger btn-icon" title="حذف" onclick="deleteInvoice('${inv.id}')">
 <i class="fa fa-trash"></i>
 </button>
+${!isSupplier ? `<button class="btn btn-xs btn-icon" title="إنشاء فاتورة المصنع" style="background:#7c2d12;color:#fff" onclick="openFactoryInvModal('${inv.id}')">
+<i class="fa fa-industry"></i>
+</button>` : ''}
 </div>
 </td>
 </tr>`;
@@ -2842,6 +2959,7 @@ document.getElementById('tabContent').innerHTML = html;
 function filterInvoices(q) {
 const sec = DB[currentSection];
 const s = SECTIONS[currentSection];
+const isSupplier = s.type === 'supplier';
 let invoices = sec.invoices.filter(i => !i.deleted);
 if (q) {
 invoices = invoices.filter(i => {
@@ -2881,6 +2999,9 @@ return `<tr>
 <button class="btn btn-xs btn-danger btn-icon" onclick="deleteInvoice('${inv.id}')">
 <i class="fa fa-trash"></i>
 </button>
+${s.type!=='supplier' ? `<button class="btn btn-xs btn-icon" title="إنشاء فاتورة المصنع" style="background:#7c2d12;color:#fff" onclick="openFactoryInvModal('${inv.id}')">
+<i class="fa fa-industry"></i>
+</button>` : ''}
 </div>
 </td>
 </tr>`;
@@ -3046,7 +3167,30 @@ updatedAt: Date.now(),
 const sec = DB[currentSection];
 if (editingInvoiceId) {
 const idx = sec.invoices.findIndex(i => i.id === editingInvoiceId);
-if (idx >= 0) sec.invoices[idx] = { ...sec.invoices[idx], ...data };
+if (idx >= 0) {
+  const existingInv = sec.invoices[idx];
+  sec.invoices[idx] = { ...existingInv, ...data };
+  // ── تحديث فاتورة المصنع المرتبطة تلقائياً ──
+  if (existingInv.factoryInvId && existingInv.factoryId && DB[existingInv.factoryId]) {
+    const factorySec = DB[existingInv.factoryId];
+    const fi = factorySec.invoices.find(x => x.id === existingInv.factoryInvId);
+    if (fi && !fi.deleted) {
+      const sSection = SECTIONS[currentSection];
+      const isUSD = sSection.currency === 'USD';
+      const newTotalAED = isUSD ? total * USD_RATE : total;
+      const storedComm = fi.totalCommission || 0;
+      const newFactoryAmt = Math.max(0, newTotalAED - storedComm);
+      const oldTotal = fi.total;
+      fi.total    = newFactoryAmt;
+      fi.subtotal = newFactoryAmt;
+      fi.date     = date;
+      fi.items    = [{ desc: 'مقابل فاتورة عميل #' + data.num + (isUSD ? ' (' + fmtNum(total) + '$)' : ''), qty: 1, price: newFactoryAmt }];
+      fi.notes    = (fi.notes || '') + ' | [تعديل ' + today() + ': ' + fmtNum(oldTotal) + '→' + fmtNum(newFactoryAmt) + ' د.إ]';
+      fi.updatedAt = Date.now();
+      toast('✅ تم تحديث فاتورة المصنع #' + (fi.num||'') + ' إلى ' + fmtNum(newFactoryAmt) + ' د.إ', 'success', 4000);
+    }
+  }
+}
 toast('✅ تم تعديل الفاتورة بنجاح', 'success');
 } else {
 sec.invoices.push({ id: uid(), ...data, deleted: false });
@@ -3062,7 +3206,18 @@ function deleteInvoice(id) {
 if (!confirm('⚠ هل أنت متأكد من حذف هذه الفاتورة؟')) return;
 const sec = DB[currentSection];
 const idx = sec.invoices.findIndex(i => i.id === id);
-if (idx >= 0) sec.invoices[idx].deleted = true;
+if (idx >= 0) {
+  const inv = sec.invoices[idx];
+  inv.deleted = true;
+  // ── حذف فاتورة المصنع المرتبطة تلقائياً ──
+  if (inv.factoryInvId && inv.factoryId && DB[inv.factoryId]) {
+    const fi = DB[inv.factoryId].invoices.find(x => x.id === inv.factoryInvId);
+    if (fi) {
+      fi.deleted = true;
+      toast('🗑 تم حذف فاتورة المصنع المرتبطة #' + (fi.num||'') + ' أيضاً', 'info', 3500);
+    }
+  }
+}
 saveDB();
 renderInvoicesTab();
 toast('تم حذف الفاتورة', 'info');
@@ -3073,93 +3228,89 @@ const sec = DB[currentSection];
 const s = SECTIONS[currentSection];
 const inv = sec.invoices.find(i => i.id === invId);
 if (!inv) return;
-
 const client = sec.clients.find(c => c.id === inv.clientId);
+const todayStr = new Date().toLocaleString('ar-EG');
 
-const html = `
-<div class="invoice-print">
-<div class="inv-company-header">
-<div class="inv-company-name">${s.name}</div>
-<div class="inv-company-sub">نظام إدارة المبيعات • ${s.currency}</div>
-</div>
+const itemRows = inv.items.map((item, i) => `
+  <tr>
+    <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9">${i+1}</td>
+    <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9">${item.desc}</td>
+    <td style="padding:8px 10px;text-align:center;border-bottom:1px solid #f1f5f9">${item.qty}</td>
+    <td style="padding:8px 10px;text-align:center;border-bottom:1px solid #f1f5f9">${fmtNum(item.price)} ${s.curSymbol}</td>
+    <td style="padding:8px 10px;text-align:center;border-bottom:1px solid #f1f5f9;font-weight:700">${fmtNum(item.qty * item.price)} ${s.curSymbol}</td>
+  </tr>`).join('');
 
-<div class="inv-meta">
-<div class="inv-client-info">
-<h4>الفاتورة إلى:</h4>
-<div class="inv-client-name">${client ? client.name : '—'}</div>
-<div style="font-size:13px;color:var(--gray-600);margin-top:4px">
-${client?.city ? client.city : ''} ${client?.phone ? ' • ' + client.phone : ''}
+const w = window.open('', '_blank', 'width=820,height=700');
+w.document.write(`<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>فاتورة #${inv.num} — ${client ? client.name : ''}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Cairo,Arial,sans-serif;background:#fff;color:#1e293b;direction:rtl;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{max-width:780px;margin:0 auto;padding:28px 24px}
+.company-hdr{text-align:center;border-bottom:3px double #1a3a5c;padding-bottom:16px;margin-bottom:22px}
+.company-name{font-size:26px;font-weight:900;color:#1a3a5c;letter-spacing:1px}
+.company-sub{font-size:13px;color:#64748b;margin-top:4px}
+.meta{display:flex;justify-content:space-between;margin-bottom:20px;background:#f8fafc;padding:14px;border-radius:10px}
+.client-name{font-size:18px;font-weight:700;color:#0f172a}
+.inv-num{font-size:20px;font-weight:800;color:#1a3a5c}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+th{background:#f1f5f9;padding:10px;text-align:right;border-bottom:2px solid #e2e8f0;color:#64748b;font-size:12px;text-transform:uppercase}
+.totals{display:flex;justify-content:flex-end;margin-top:16px}
+.totals-inner{width:300px;border:1.5px solid #e2e8f0;border-radius:8px;overflow:hidden}
+.tot-row{display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #f1f5f9;font-size:13px}
+.tot-row:last-child{border:none;background:#1a3a5c;color:#fff;font-weight:800;font-size:15px}
+.notes-box{margin-top:14px;padding:12px;background:#f8fafc;border-radius:8px;border-right:3px solid #0891b2;font-size:13px}
+.footer{margin-top:36px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:14px}
+@page{margin:10mm;size:A4}
+@media print{.no-print{display:none!important}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="company-hdr">
+    <div class="company-name">${s.name}</div>
+    <div class="company-sub">نظام إدارة المبيعات • ${s.currency}</div>
+  </div>
+  <div class="meta">
+    <div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:6px">الفاتورة إلى:</div>
+      <div class="client-name">${client ? client.name : '—'}</div>
+      <div style="font-size:12px;color:#64748b;margin-top:4px">${(client?.city || '') + (client?.phone ? ' • ' + client.phone : '')}</div>
+    </div>
+    <div style="text-align:left">
+      <div style="font-size:12px;color:#64748b;margin-bottom:4px">رقم الفاتورة</div>
+      <div class="inv-num">#${inv.num}</div>
+      <div style="font-size:12px;color:#64748b;margin-top:8px">التاريخ: ${fmtDate(inv.date)}</div>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>الصنف / الوصف</th>
+        <th style="text-align:center">الكمية</th>
+        <th style="text-align:center">السعر</th>
+        <th style="text-align:center">الإجمالي</th>
+      </tr>
+    </thead>
+    <tbody>${itemRows}</tbody>
+  </table>
+  <div class="totals">
+    <div class="totals-inner">
+      <div class="tot-row"><span>المجموع:</span><strong>${fmtNum(inv.subtotal)} ${s.curSymbol}</strong></div>
+      ${inv.discount > 0 ? '<div class="tot-row"><span>الخصم:</span><strong>- ' + fmtNum(inv.discount) + ' ' + s.curSymbol + '</strong></div>' : ''}
+      <div class="tot-row"><span>الصافي:</span><strong>${fmtNum(inv.total)} ${s.curSymbol}</strong></div>
+    </div>
+  </div>
+  ${inv.notes ? '<div class="notes-box"><strong>ملاحظات:</strong> ' + inv.notes + '</div>' : ''}
+  ${inv.image ? '<div style="margin-top:16px;text-align:center"><img src="' + inv.image + '" style="max-width:400px;border-radius:8px;border:2px solid #e2e8f0"></div>' : ''}
+  <div class="footer">تاريخ الطباعة: ${todayStr} • نظام إدارة جلابية ميامي</div>
 </div>
-</div>
-<div class="inv-num-info">
-<div style="font-size:13px;color:var(--gray-500);margin-bottom:4px">رقم الفاتورة</div>
-<div class="inv-num">#${inv.num}</div>
-<div style="font-size:12px;color:var(--gray-500);margin-top:8px">التاريخ: ${fmtDate(inv.date)}</div>
-</div>
-</div>
-
-<table style="width:100%;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;margin:16px 0">
-<thead>
-<tr style="background:var(--gray-50)">
-<th style="padding:10px;text-align:right;border-bottom:2px solid var(--gray-200)">#</th>
-<th style="padding:10px;text-align:right;border-bottom:2px solid var(--gray-200)">الصنف / الوصف</th>
-<th style="padding:10px;text-align:center;border-bottom:2px solid var(--gray-200)">الكمية</th>
-<th style="padding:10px;text-align:center;border-bottom:2px solid var(--gray-200)">السعر</th>
-<th style="padding:10px;text-align:center;border-bottom:2px solid var(--gray-200)">الإجمالي</th>
-</tr>
-</thead>
-<tbody>
-${inv.items.map((item, i) => `
-<tr>
-<td style="padding:8px 10px;border-bottom:1px solid var(--gray-100)">${i+1}</td>
-<td style="padding:8px 10px;border-bottom:1px solid var(--gray-100)">${item.desc}</td>
-<td style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--gray-100)">${item.qty}</td>
-<td style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--gray-100)">${fmtNum(item.price)} ${s.curSymbol}</td>
-<td style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--gray-100);font-weight:700">${fmtNum(item.qty * item.price)} ${s.curSymbol}</td>
-</tr>
-`).join('')}
-</tbody>
-</table>
-
-<div class="inv-totals">
-<div class="inv-totals-inner">
-<div class="inv-total-row">
-<span>المجموع:</span>
-<strong>${fmtNum(inv.subtotal)} ${s.curSymbol}</strong>
-</div>
-${inv.discount > 0 ? `
-<div class="inv-total-row">
-<span>الخصم:</span>
-<strong>- ${fmtNum(inv.discount)} ${s.curSymbol}</strong>
-</div>
-` : ''}
-<div class="inv-total-row">
-<span>الصافي:</span>
-<strong>${fmtNum(inv.total)} ${s.curSymbol}</strong>
-</div>
-</div>
-</div>
-
-${inv.notes ? `
-<div style="margin-top:16px;padding:12px;background:var(--gray-50);border-radius:8px;border-right:3px solid var(--info)">
-<strong>ملاحظات:</strong> ${inv.notes}
-</div>
-` : ''}
-
-${inv.image ? `
-<div style="margin-top:16px;text-align:center">
-<img src="${inv.image}" style="max-width:400px;border-radius:8px;border:2px solid var(--gray-200)">
-</div>
-` : ''}
-
-<div style="margin-top:40px;text-align:center;font-size:12px;color:var(--gray-400);border-top:1px solid var(--gray-200);padding-top:16px">
-تاريخ الطباعة: ${new Date().toLocaleString('ar-EG')} • نظام إدارة جلابية ميامي
-</div>
-</div>
-`;
-
-document.getElementById('printContent').innerHTML = html;
-openModal('printModal');
+<script>window.onload=()=>{window.print();}<\/script>
+</body></html>`);
+w.document.close();
 }
 
 /* ════════════════════════════════════════════════════
@@ -3968,12 +4119,20 @@ function syncLoadConfig() {
 
 // ── حفظ الإعدادات ──
 function syncSaveConfig() {
-  const token  = document.getElementById('syncTokenInput').value.trim();
+  let token  = document.getElementById('syncTokenInput').value.trim();
   const gistId = document.getElementById('syncGistIdInput').value.trim();
 
-  if (!token) { toast('⚠ أدخل الـ Token أولاً', 'error'); return; }
-  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
-    toast('⚠ التوكن غير صحيح — يجب أن يبدأ بـ ghp_ أو github_pat_', 'error'); return;
+  // إذا الحقل فارغ أو يحتوي رموز ● → استخدم التوكن المحفوظ مسبقاً
+  if (!token || token.includes('●') || token.includes('✅')) {
+    if (SYNC.token) {
+      token = SYNC.token;
+      syncLog('ℹ️ استخدام التوكن المحفوظ مسبقاً');
+    } else {
+      toast('⚠ أدخل الـ Token أولاً', 'error'); return;
+    }
+  }
+  if (token.length < 20) {
+    toast('⚠ التوكن قصير جداً — تأكد من نسخه كاملاً', 'error'); return;
   }
 
   const mode = document.getElementById('syncModeSelect')?.value || 'both';
@@ -4037,7 +4196,7 @@ async function syncCreateGist() {
     };
     const res = await fetch('https://api.github.com/gists', {
       method: 'POST',
-      headers: { Authorization: 'token ' + SYNC.token, 'Content-Type': 'application/json' },
+      headers: { Authorization: 'Bearer ' + SYNC.token, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
     if (!res.ok) { syncLog('❌ فشل إنشاء Gist: ' + res.status); return null; }
@@ -4077,21 +4236,40 @@ async function syncPush(showToast = true) {
       data: stripImgs(DB)
     };
 
+    const bodyStr = JSON.stringify({ files: { 'miami_data.json': { content: JSON.stringify(payload) } } });
+    const sizeKB = Math.round(bodyStr.length / 1024);
+    syncLog('📦 حجم البيانات: ' + sizeKB + ' KB');
+    if (sizeKB > 9000) {
+      throw new Error('البيانات كبيرة جداً (' + sizeKB + ' KB) — الحد الأقصى لـ Gist هو 10 MB');
+    }
+
     const res = await fetch('https://api.github.com/gists/' + SYNC.gistId, {
       method: 'PATCH',
-      headers: { Authorization: 'token ' + SYNC.token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ files: { 'miami_data.json': { content: JSON.stringify(payload) } } })
+      headers: { Authorization: 'Bearer ' + SYNC.token, 'Content-Type': 'application/json' },
+      body: bodyStr,
+      signal: AbortSignal.timeout(25000)
     });
 
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      const detail = res.status === 401 ? 'التوكن منتهي أو غير صحيح'
+                   : res.status === 403 ? 'التوكن لا يملك صلاحية الكتابة — عند إنشاء التوكن يجب تفعيل Gist (وليس Read-only)'
+                   : res.status === 404 ? 'Gist ID غير صحيح أو محذوف'
+                   : res.status === 422 ? 'البيانات كبيرة جداً أو غير صالحة'
+                   : 'HTTP ' + res.status;
+      throw new Error(detail);
+    }
     const now = new Date().toLocaleTimeString('ar-EG');
     syncLog('⬆️ رُفع بنجاح — ' + now);
     syncUpdateBar('ok', 'آخر رفع: ' + now);
     if (showToast) toast('✅ تم رفع البيانات لـ GitHub', 'success');
   } catch(e) {
-    syncLog('❌ فشل الرفع: ' + e.message);
+    const msg = (e.name === 'AbortError' || e.name === 'TimeoutError')
+      ? 'انتهت مهلة الاتصال (20 ث) — تحقق من الإنترنت'
+      : e.message || 'خطأ غير معروف';
+    syncLog('❌ فشل الرفع: ' + msg);
     syncUpdateBar('error', 'فشل الرفع');
-    if (showToast) toast('❌ فشل رفع البيانات: ' + e.message, 'error');
+    if (showToast) toast('❌ ' + msg, 'error', 5000);
   } finally {
     SYNC.isSyncing = false;
   }
@@ -4108,11 +4286,13 @@ async function syncPull(showToast = true, forcePull = false) {
 
   try {
     const res = await fetch('https://api.github.com/gists/' + SYNC.gistId + '?_=' + Date.now(), {
-      headers: { Authorization: 'token ' + SYNC.token }
+      headers: { Authorization: 'Bearer ' + SYNC.token },
+      signal: AbortSignal.timeout(25000)
     });
     if (!res.ok) {
-      const errMsg = res.status === 401 ? 'HTTP 401 - التوكن غير صحيح أو منتهي الصلاحية'
-                   : res.status === 404 ? 'HTTP 404 - Gist ID غير صحيح أو محذوف'
+      const errMsg = res.status === 401 ? 'التوكن منتهي أو غير صحيح — تحقق من الإعدادات'
+                   : res.status === 403 ? 'صلاحيات التوكن غير كافية — تحقق من صلاحية gist'
+                   : res.status === 404 ? 'Gist ID غير صحيح أو محذوف'
                    : 'HTTP ' + res.status;
       throw new Error(errMsg);
     }
@@ -4126,7 +4306,7 @@ async function syncPull(showToast = true, forcePull = false) {
     if (fileInfo.truncated) {
       syncLog('⚠️ البيانات كبيرة — جاري تحميل النسخة الكاملة...');
       const rawRes = await fetch(fileInfo.raw_url, {
-        headers: { Authorization: 'token ' + SYNC.token }
+        headers: { Authorization: 'Bearer ' + SYNC.token }
       });
       raw = await rawRes.text();
     } else {
@@ -4250,9 +4430,12 @@ async function syncPull(showToast = true, forcePull = false) {
       }
     }
   } catch(e) {
-    syncLog('❌ فشل السحب: ' + e.message);
+    const msg = (e.name === 'AbortError' || e.name === 'TimeoutError')
+      ? 'انتهت مهلة الاتصال (20 ث) — تحقق من الإنترنت'
+      : e.message || 'خطأ غير معروف';
+    syncLog('❌ فشل السحب: ' + msg);
     syncUpdateBar('error', 'فشل الاتصال');
-    if (showToast) toast('❌ ' + e.message, 'error', 5000);
+    if (showToast) toast('❌ ' + msg, 'error', 5000);
   }
 }
 
@@ -4291,22 +4474,96 @@ function syncDisable() {
 
 // ── اختبار الاتصال ──
 async function syncTestConnection() {
-  const token = document.getElementById('syncTokenInput').value.trim();
-  if (!token) { toast('⚠ أدخل التوكن أولاً', 'error'); return; }
-  toast('⏳ جاري الاختبار...', 'info', 2000);
+  let token  = (document.getElementById('syncTokenInput')?.value || '').trim();
+  const gistId = (document.getElementById('syncGistIdInput')?.value || SYNC.gistId).trim();
+  // إذا الحقل فارغ أو يحتوي رموز غير صالحة → استخدم المحفوظ
+  if (!token || token.includes('●') || token.includes('✅')) token = SYNC.token;
+  if (!token) { toast('⚠ أدخل التوكن أولاً أو احفظ الإعدادات', 'error'); return; }
+
+  syncLog('🔍 بدء تشخيص الاتصال...');
+  syncUpdateBar('syncing', 'جاري الفحص...');
+
+  // خطوة 1: اختبار الإنترنت + التوكن
   try {
-    const res = await fetch('https://api.github.com/user', {
-      headers: { Authorization: 'token ' + token }
+    const r1 = await fetch('https://api.github.com/user', {
+      headers: { Authorization: 'Bearer ' + token },
+      signal: AbortSignal.timeout(10000)
     });
-    if (res.ok) {
-      const user = await res.json();
-      toast('✅ اتصال ناجح — مرحباً ' + user.login, 'success', 4000);
-      syncLog('✅ اتصال ناجح: ' + user.login);
-    } else {
-      toast('❌ Token غير صحيح أو منتهي — ' + res.status, 'error');
+    if (!r1.ok) {
+      const msg = r1.status === 401
+        ? '❌ التوكن منتهي أو غير صحيح (401) — أنشئ توكناً جديداً من GitHub → Settings → Developer settings → Tokens'
+        : r1.status === 403
+        ? '❌ التوكن لا يملك صلاحية gist (403) — تأكد من تفعيل صلاحية Gist عند إنشاء التوكن'
+        : '❌ خطأ GitHub: HTTP ' + r1.status;
+      syncLog(msg);
+      syncUpdateBar('error', 'فشل التحقق');
+      toast(msg, 'error', 7000);
+      return;
     }
+    const user = await r1.json();
+    syncLog('✅ الخطوة 1: توكن صحيح — المستخدم: ' + user.login);
+
+    // خطوة 2: اختبار الـ Gist إن وُجد
+    if (gistId) {
+      const r2 = await fetch('https://api.github.com/gists/' + gistId, {
+        headers: { Authorization: 'Bearer ' + token },
+        signal: AbortSignal.timeout(10000)
+      });
+      if (!r2.ok) {
+        const msg2 = r2.status === 404
+          ? '❌ Gist ID غير موجود أو محذوف — تحقق من الـ ID أو أنشئ Gist جديداً'
+          : '❌ خطأ الـ Gist: HTTP ' + r2.status;
+        syncLog(msg2);
+        syncUpdateBar('error', 'Gist غير صحيح');
+        toast(msg2, 'error', 6000);
+        return;
+      }
+      const gist = await r2.json();
+      const hasFile = !!gist.files?.['miami_data.json'];
+      syncLog('✅ الخطوة 2: Gist صحيح' + (hasFile ? ' — الملف موجود' : ' — الملف غير موجود (سيتم إنشاؤه)'));
+
+      // خطوة 2b: اختبار صلاحية الكتابة عبر PATCH تجريبي
+      const testPatch = await fetch('https://api.github.com/gists/' + gistId, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: gist.description || 'ميامي جلابية' }),
+        signal: AbortSignal.timeout(10000)
+      });
+      if (!testPatch.ok) {
+        if (testPatch.status === 403) {
+          const fix = '❌ التوكن لا يملك صلاحية الكتابة!\n\nالحل: أنشئ توكناً جديداً من:\nGitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)\nثم فعّل صلاحية: ✅ gist (وليس read-only)';
+          syncLog('❌ الخطوة 2b: فشل اختبار الكتابة (403) — التوكن للقراءة فقط');
+          syncUpdateBar('error', 'لا صلاحية كتابة');
+          alert(fix);
+          return;
+        }
+      } else {
+        syncLog('✅ الخطوة 2b: صلاحية الكتابة مؤكدة ✓');
+      }
+    }
+
+    // خطوة 3: اختبار حجم البيانات
+    const dbSize = JSON.stringify(DB).length;
+    const dbSizeKB = Math.round(dbSize / 1024);
+    if (dbSizeKB > 8000) {
+      syncLog('⚠ حجم البيانات كبير: ' + dbSizeKB + ' KB — قد يفشل الرفع');
+    } else {
+      syncLog('✅ الخطوة 3: حجم البيانات مقبول — ' + dbSizeKB + ' KB');
+    }
+
+    const summary = 'اتصال ناجح ✅ | مستخدم: ' + user.login + (gistId ? ' | Gist: صحيح' : ' | Gist: لم يُحدد');
+    syncUpdateBar('ok', 'متصل');
+    toast('✅ ' + summary, 'success', 5000);
+    syncLog('✅ التشخيص مكتمل — كل شيء على ما يرام');
   } catch(e) {
-    toast('❌ فشل الاتصال بالإنترنت', 'error');
+    const errMsg = e.name === 'TimeoutError' || e.name === 'AbortError'
+      ? '❌ انتهت مهلة الاتصال — تحقق من اتصال الإنترنت'
+      : e.message?.includes('fetch') || e.message?.includes('network') || e.message?.includes('Failed')
+      ? '❌ فشل الاتصال — تحقق من الإنترنت أو أعد المحاولة'
+      : '❌ خطأ: ' + e.message;
+    syncLog(errMsg);
+    syncUpdateBar('error', 'فشل الاتصال');
+    toast(errMsg, 'error', 6000);
   }
 }
 
@@ -4382,8 +4639,15 @@ function syncRenderStatus() {
       <i class="fa fa-info-circle"></i> انسخ الـ Gist ID وضعه في الجهاز الثاني لمزامنتهما على نفس البيانات.
     </div>`;
 
-    // Set token in input
-    document.getElementById('syncTokenInput').value = SYNC.token ? '●'.repeat(20) : '';
+    // لا نضع التوكن في الحقل (حتى لا يُحفظ بشكل خاطئ)
+    // نترك الحقل فارغاً ونغير الـ placeholder
+    const tkEl = document.getElementById('syncTokenInput');
+    if (tkEl) {
+      tkEl.value = '';
+      tkEl.placeholder = SYNC.token
+        ? '✅ توكن محفوظ — امسح وأدخل جديداً للتغيير فقط'
+        : 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+    }
     document.getElementById('syncGistIdInput').value = SYNC.gistId;
     document.getElementById('syncIntervalSelect').value = String(SYNC.interval);
     const modeEl = document.getElementById('syncModeSelect');
@@ -4401,7 +4665,19 @@ function openSyncModal() {
   syncRenderStatus();
   const logEl = document.getElementById('syncLog');
   if (logEl) logEl.innerHTML = SYNC.log.map(l => `<div style="margin-bottom:3px">${l}</div>`).join('');
-  if (SYNC.gistId) document.getElementById('syncGistIdInput').value = SYNC.gistId;
+  if (SYNC.gistId) {
+    const gEl = document.getElementById('syncGistIdInput');
+    if (gEl) gEl.value = SYNC.gistId;
+  }
+  // أظهر حالة التوكن في الـ placeholder
+  const tkEl = document.getElementById('syncTokenInput');
+  if (tkEl) {
+    tkEl.value = '';
+    tkEl.placeholder = SYNC.token
+      ? '✅ توكن محفوظ — الصق جديداً للتغيير فقط'
+      : 'الصق التوكن هنا (ghp_xxx...)';
+    tkEl.style.borderColor = SYNC.token ? '#22c55e' : '#e2e8f0';
+  }
   openModal('syncModal');
 }
 
@@ -4454,6 +4730,694 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 });
+
+
+/* ════════════════════════════════════════════════════
+🏭 FACTORY INVOICE - فاتورة المصنع (عمولات متعددة)
+════════════════════════════════════════════════════ */
+
+const FACTORY_MAP = {
+  miami_clients:  'miami_factory',
+  kuwait_clients: 'kuwait_factory',
+  ishtar_clients: 'ishtar_factory',
+};
+const USD_RATE = 3.67;
+let _fiCommRowCount = 0;
+
+function openFactoryInvModal(invId) {
+  const sec = DB[currentSection];
+  const s   = SECTIONS[currentSection];
+  const inv = sec.invoices.find(i => i.id === invId);
+  if (!inv) return;
+  const client = sec.clients.find(c => c.id === inv.clientId);
+  const isUSD  = s.currency === 'USD';
+
+  document.getElementById('fi_src_inv_id').value  = invId;
+  document.getElementById('fi_src_section').value = currentSection;
+  document.getElementById('fi_src_num').textContent   = '#' + inv.num;
+  document.getElementById('fi_src_total').textContent = fmtNum(inv.total) + ' ' + s.curSymbol;
+  document.getElementById('fi_src_client').textContent = client ? client.name : '—';
+  document.getElementById('fi_usd_note').style.display = isUSD ? 'block' : 'none';
+  document.getElementById('fi_date').value  = today();
+  document.getElementById('fi_notes').value = 'مقابل فاتورة عميل #' + inv.num;
+
+  // بناء صفوف العمولة: تحميل من الأسعار المحفوظة أولاً
+  _fiCommRowCount = 0;
+  const tbody = document.getElementById('fi_comm_rows');
+  tbody.innerHTML = '';
+  const factoryId   = FACTORY_MAP[currentSection];
+  const savedComms  = (DB[factoryId] && DB[factoryId].commissions) ? DB[factoryId].commissions : [];
+
+  // تحديث رؤوس الأعمدة حسب نوع الفاتورة
+  const fiThRate  = document.getElementById('fi_th_rate');
+  const fiThTotal = document.getElementById('fi_th_total');
+  const fiTfoot   = document.getElementById('fi_tfoot_label');
+  if (isUSD) {
+    if (fiThRate)  fiThRate.textContent  = 'سعر المصنع / قطعة (د.إ)';
+    if (fiThTotal) fiThTotal.textContent = 'إجمالي المصنع';
+    if (fiTfoot)   fiTfoot.innerHTML     = '<i class="fa fa-sigma"></i> إجمالي مستحق المصنع';
+  } else {
+    if (fiThRate)  fiThRate.textContent  = 'عمولة / قطعة (د.إ)';
+    if (fiThTotal) fiThTotal.textContent = 'إجمالي العمولة';
+    if (fiTfoot)   fiTfoot.innerHTML     = '<i class="fa fa-sigma"></i> إجمالي العمولة';
+  }
+
+  if (isUSD && savedComms.length && inv.items && inv.items.length) {
+    // ميامي: الحقل = سعر المصنع مباشرة (وليس العمولة)
+    inv.items.forEach(it => {
+      const unitP  = Number(it.price) || 0;
+      const preset = savedComms.find(c => Number(c.client_price) === unitP);
+      let factoryPrice = '';
+      let rowDesc  = it.desc || '';
+      if (preset) {
+        factoryPrice = Number(preset.factory_price);
+        rowDesc = it.desc + ' ($' + unitP + '/قطعة → مصنع ' + factoryPrice + ' د.إ/قطعة)';
+      } else {
+        rowDesc = it.desc + (unitP ? ' ($' + unitP + ' — لا يوجد سعر مصنع محفوظ)' : '');
+      }
+      addFiCommRow(rowDesc, it.qty, factoryPrice);
+    });
+  } else if (!isUSD && savedComms.length) {
+    // كويتي/عشتار: تحميل الأسعار المحفوظة — الكمية الإجمالية من الفاتورة
+    const totalQty = inv.items ? inv.items.reduce((s, it) => s + Number(it.qty || 0), 0) : 0;
+    savedComms.forEach((c, idx) => {
+      // إذا عمولة واحدة فقط، ضع الكمية الكلية تلقائياً
+      const qty = savedComms.length === 1 ? totalQty : '';
+      addFiCommRow(c.desc, qty, c.rate);
+    });
+  } else if (inv.items && inv.items.length) {
+    // لا توجد أسعار محفوظة: تعبئة من أصناف الفاتورة فقط
+    inv.items.forEach(it => addFiCommRow(it.desc, it.qty, ''));
+  } else {
+    addFiCommRow('', '', '');
+  }
+
+  calcFactoryInv();
+  openModal('factoryInvModal');
+}
+
+function addFiCommRow(desc, pieces, rate) {
+  _fiCommRowCount++;
+  const id = 'fi_row_' + _fiCommRowCount;
+  const tbody = document.getElementById('fi_comm_rows');
+  const tr = document.createElement('tr');
+  tr.id = id;
+  tr.style.borderBottom = '1px solid #f1f5f9';
+  tr.innerHTML = `
+    <td style="padding:6px 8px">
+      <input type="text" value="${desc || ''}" placeholder="اسم الصنف (اختياري)"
+        style="width:100%;padding:6px 8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit">
+    </td>
+    <td style="padding:6px 8px">
+      <input type="number" min="0" value="${pieces || ''}" placeholder="0" oninput="calcFactoryInv()"
+        style="width:100%;padding:6px 8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;text-align:center">
+    </td>
+    <td style="padding:6px 8px">
+      <input type="number" min="0" step="0.5" value="${rate || ''}" placeholder="0.00" oninput="calcFactoryInv()"
+        style="width:100%;padding:6px 8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;text-align:center">
+    </td>
+    <td id="${id}_total" style="padding:6px 8px;text-align:center;font-weight:700;color:#d97706;font-size:13px">0.00</td>
+    <td style="padding:6px 8px;text-align:center">
+      <button type="button" class="btn btn-xs btn-danger btn-icon" onclick="removeFiRow('${id}')">
+        <i class="fa fa-times"></i>
+      </button>
+    </td>`;
+  tbody.appendChild(tr);
+  calcFactoryInv();
+}
+
+function removeFiRow(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+  if (document.getElementById('fi_comm_rows').children.length === 0) addFiCommRow();
+  calcFactoryInv();
+}
+
+function calcFactoryInv() {
+  const invId     = document.getElementById('fi_src_inv_id').value;
+  const sectionId = document.getElementById('fi_src_section').value;
+  if (!invId || !sectionId) return;
+
+  const sec = DB[sectionId];
+  const s   = SECTIONS[sectionId];
+  const inv = sec ? sec.invoices.find(i => i.id === invId) : null;
+  if (!inv) return;
+
+  const isUSD = s.currency === 'USD';
+  const invTotalAED = isUSD ? inv.total * USD_RATE : inv.total;
+
+  // حساب الصفوف
+  let rowsTotal = 0;   // مجموع (قطع × معدل) — يختلف معناه حسب نوع الفاتورة
+  const rows = document.getElementById('fi_comm_rows').querySelectorAll('tr');
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input[type="number"]');
+    if (inputs.length >= 2) {
+      const pieces   = Number(inputs[0].value) || 0;
+      const rate     = Number(inputs[1].value) || 0;
+      const rowTotal = pieces * rate;
+      rowsTotal += rowTotal;
+      const totalCell = row.querySelector('td[id$="_total"]');
+      if (totalCell) totalCell.textContent = fmtNum(rowTotal);
+    }
+  });
+
+  // ميامي (USD): المعدل = سعر المصنع → مبلغ المصنع = مجموع(قطع × سعر_مصنع)
+  // كويتي/عشتار: المعدل = عمولة → مبلغ المصنع = إجمالي - مجموع(قطع × عمولة)
+  let factoryAmt, commission;
+  if (isUSD) {
+    factoryAmt = rowsTotal;                        // مجموع(قطع × سعر_مصنع)
+    commission = invTotalAED - factoryAmt;         // ربح الحاج
+  } else {
+    commission = rowsTotal;                        // مجموع(قطع × عمولة)
+    factoryAmt = invTotalAED - commission;         // مستحق المصنع
+  }
+
+  document.getElementById('fi_total_comm').textContent = fmtNum(isUSD ? factoryAmt : commission);
+
+  // تحديث المعاينة
+  document.getElementById('fi_pre_total').textContent = fmtNum(inv.total) + ' ' + s.curSymbol;
+  if (isUSD) {
+    document.getElementById('fi_pre_usd_conv_row').style.display = 'block';
+    document.getElementById('fi_pre_usd_conv').textContent =
+      fmtNum(inv.total) + ' $ × ' + USD_RATE + ' = ' + fmtNum(invTotalAED) + ' د.إ';
+  } else {
+    document.getElementById('fi_pre_usd_conv_row').style.display = 'none';
+  }
+  document.getElementById('fi_pre_commission').textContent = fmtNum(commission) + ' د.إ'
+    + (isUSD ? ' (ربح الحاج)' : ' (عمولة)');
+  document.getElementById('fi_pre_factory').textContent = fmtNum(factoryAmt) + ' د.إ';
+
+  const btn = document.getElementById('fi_confirm_btn');
+  if (factoryAmt <= 0) {
+    document.getElementById('fi_pre_factory').style.color = '#ef4444';
+    btn.disabled = true;
+  } else {
+    document.getElementById('fi_pre_factory').style.color = '#4ade80';
+    btn.disabled = false;
+  }
+}
+
+function saveFactoryInvoice() {
+  const invId     = document.getElementById('fi_src_inv_id').value;
+  const sectionId = document.getElementById('fi_src_section').value;
+  const factoryId = FACTORY_MAP[sectionId];
+
+  if (!factoryId) { toast('⚠ لا يوجد مصنع مرتبط بهذا القسم', 'error'); return; }
+
+  const sec = DB[sectionId];
+  const s   = SECTIONS[sectionId];
+  const inv = sec.invoices.find(i => i.id === invId);
+  if (!inv) { toast('⚠ فاتورة العميل غير موجودة', 'error'); return; }
+
+  const isUSD = s.currency === 'USD';
+  const invTotalAED = isUSD ? inv.total * USD_RATE : inv.total;
+
+  // جمع صفوف العمولة
+  let rowsTotal = 0;
+  const commLines = [];
+  const rows = document.getElementById('fi_comm_rows').querySelectorAll('tr');
+  rows.forEach(row => {
+    const textInp   = row.querySelector('input[type="text"]');
+    const numInputs = row.querySelectorAll('input[type="number"]');
+    if (numInputs.length >= 2) {
+      const pieces = Number(numInputs[0].value) || 0;
+      const rate   = Number(numInputs[1].value) || 0;
+      const rowVal = pieces * rate;
+      if (pieces > 0 && rate > 0) {
+        const desc = textInp ? textInp.value.trim() : '';
+        commLines.push({ desc: desc || ('صنف ' + (commLines.length + 1)), pieces, rate, comm: rowVal });
+        rowsTotal += rowVal;
+      }
+    }
+  });
+
+  if (commLines.length === 0) { toast('⚠ أدخل بيانات العمولة في جدول الأصناف', 'warning'); return; }
+
+  // ميامي: factoryAmt = مجموع(قطع × سعر_مصنع) ، ربح = invTotalAED - factoryAmt
+  // كويتي/عشتار: factoryAmt = invTotalAED - مجموع(قطع × عمولة)
+  const factoryAmt = isUSD ? rowsTotal : (invTotalAED - rowsTotal);
+  const totalCommission = isUSD ? (invTotalAED - rowsTotal) : rowsTotal;
+  if (factoryAmt <= 0) { toast('⚠ مبلغ فاتورة المصنع يجب أن يكون أكبر من صفر', 'error'); return; }
+
+  const factorySec = DB[factoryId];
+  if (!factorySec || !factorySec.clients.length) { toast('⚠ لا يوجد حساب في قسم المصنع', 'error'); return; }
+
+  const factoryClient = factorySec.clients[0];
+  const nextNum = factorySec.invoices.length
+    ? Math.max(...factorySec.invoices.map(i => i.num || 0)) + 1
+    : 1001;
+
+  const date  = document.getElementById('fi_date').value || today();
+  const notes = document.getElementById('fi_notes').value.trim();
+
+  // بناء وصف تفصيلي
+  const commDesc = commLines.map(l =>
+    l.desc + ': ' + fmtNum(l.pieces, 0) + ' قطعة × ' + fmtNum(l.rate) + ' = ' + fmtNum(l.comm) + ' د.إ'
+  ).join(' | ');
+  const fullNotes = (notes || '') +
+    (isUSD ? ' [' + fmtNum(inv.total) + '$ × ' + USD_RATE + ' = ' + fmtNum(invTotalAED) + ' د.إ]' : '') +
+    ' | عمولة: ' + fmtNum(totalCommission) + ' د.إ | ' + commDesc;
+
+  const factoryInv = {
+    id: uid(), num: nextNum, date,
+    clientId: factoryClient.id,
+    items: [{ desc: 'مقابل فاتورة عميل #' + inv.num + (isUSD ? ' (' + fmtNum(inv.total) + '$)' : ''), qty: 1, price: factoryAmt }],
+    subtotal: factoryAmt, discount: 0, total: factoryAmt,
+    notes: fullNotes,
+    image: null, deleted: false, updatedAt: Date.now(),
+    srcInvId: invId, srcSection: sectionId,
+    commLines, totalCommission,
+  };
+
+  // إذا كانت هناك فاتورة مصنع قديمة لنفس الفاتورة → أعد تعيينها
+  if (inv.factoryInvId) {
+    const oldFi = factorySec.invoices.find(x => x.id === inv.factoryInvId && !x.deleted);
+    if (oldFi) {
+      oldFi.total = factoryAmt; oldFi.subtotal = factoryAmt;
+      oldFi.date = factoryInv.date; oldFi.notes = factoryInv.notes;
+      oldFi.items = factoryInv.items; oldFi.commLines = commLines;
+      oldFi.totalCommission = totalCommission; oldFi.updatedAt = Date.now();
+      inv.factoryInvNum = oldFi.num; inv.factoryId = factoryId;
+      saveDB(); closeModal('factoryInvModal'); renderInvoicesTab();
+      toast('✅ تم تحديث فاتورة المصنع #' + oldFi.num + ' بمبلغ ' + fmtNum(factoryAmt) + ' د.إ', 'success', 5000);
+      return;
+    }
+  }
+
+  factorySec.invoices.push(factoryInv);
+  inv.factoryInvId  = factoryInv.id;
+  inv.factoryInvNum = nextNum;
+  inv.factoryId     = factoryId;
+
+  saveDB();
+  closeModal('factoryInvModal');
+  renderInvoicesTab();
+
+  const fSec = SECTIONS[factoryId];
+  toast('✅ تم إنشاء فاتورة المصنع #' + nextNum + ' في ' + fSec.name + ' بمبلغ ' + fmtNum(factoryAmt) + ' د.إ', 'success', 5000);
+}
+
+/* ════════════════════════════════════════════════════
+📅 TODAY SUMMARY TAB - ملخص اليوم
+════════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════════════
+   📊 تبويب إدارة العمولات - لكل مصنع
+═══════════════════════════════════════════════ */
+
+function renderCommissionsTab() {
+  const sec = DB[currentSection];
+  const s   = SECTIONS[currentSection];
+  const comms = sec.commissions || [];
+  const isMiami = currentSection === 'miami_factory';
+  const color = s.color || '#1a3a5c';
+
+  let tableRows = '';
+  if (isMiami) {
+    tableRows = comms.map((c,i) => {
+      const effRate = ((Number(c.client_price) * 3.67) - Number(c.factory_price)).toFixed(2);
+      return `<tr style="border-bottom:1px solid #f1f5f9">
+        <td style="padding:10px 12px;text-align:center">${i+1}</td>
+        <td style="padding:10px 12px;text-align:center;font-weight:700;color:#1e40af">$${c.client_price}</td>
+        <td style="padding:10px 12px;text-align:center;font-weight:700;color:#166534">${c.factory_price} د.إ</td>
+        <td style="padding:10px 12px;text-align:center;font-weight:700;color:#92400e">${effRate} د.إ</td>
+        <td style="padding:10px 12px;text-align:center">
+          <button class="btn btn-xs btn-icon" style="background:#3b82f6;color:#fff;margin-left:4px"
+            onclick="editCommission('${c.id}')"><i class="fa fa-pencil"></i></button>
+          <button class="btn btn-xs btn-icon btn-danger"
+            onclick="deleteCommission('${c.id}')"><i class="fa fa-trash"></i></button>
+        </td>
+      </tr>`;
+    }).join('');
+  } else {
+    tableRows = comms.map((c,i) => `<tr style="border-bottom:1px solid #f1f5f9">
+      <td style="padding:10px 12px;text-align:center">${i+1}</td>
+      <td style="padding:10px 12px">${c.desc || '—'}</td>
+      <td style="padding:10px 12px;text-align:center;font-weight:700;color:#92400e">${c.rate} د.إ</td>
+      <td style="padding:10px 12px;text-align:center">
+        <button class="btn btn-xs btn-icon" style="background:#3b82f6;color:#fff;margin-left:4px"
+          onclick="editCommission('${c.id}')"><i class="fa fa-pencil"></i></button>
+        <button class="btn btn-xs btn-icon btn-danger"
+          onclick="deleteCommission('${c.id}')"><i class="fa fa-trash"></i></button>
+      </td>
+    </tr>`).join('');
+  }
+
+  const tableHeaders = isMiami
+    ? `<th style="padding:10px 12px;text-align:center">#</th>
+       <th style="padding:10px 12px;text-align:center">سعر العميل ($)</th>
+       <th style="padding:10px 12px;text-align:center">سعر المصنع (د.إ)</th>
+       <th style="padding:10px 12px;text-align:center">العمولة/قطعة (د.إ)</th>
+       <th style="padding:10px 12px;text-align:center">إجراءات</th>`
+    : `<th style="padding:10px 12px;text-align:center">#</th>
+       <th style="padding:10px 12px">الوصف</th>
+       <th style="padding:10px 12px;text-align:center">العمولة/قطعة (د.إ)</th>
+       <th style="padding:10px 12px;text-align:center">إجراءات</th>`;
+
+  const addFormMiami = `
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
+      <div>
+        <label style="font-size:12px;color:var(--gray-500);display:block;margin-bottom:4px">سعر العميل ($)</label>
+        <input type="number" id="comm_client_price" min="0" step="0.5" placeholder="مثال: 12"
+          style="width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px">
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--gray-500);display:block;margin-bottom:4px">سعر المصنع (د.إ)</label>
+        <input type="number" id="comm_factory_price" min="0" step="0.5" placeholder="مثال: 34"
+          style="width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px">
+      </div>
+      <button class="btn btn-success" onclick="saveCommission()" style="padding:9px 18px">
+        <i class="fa fa-save"></i> حفظ
+      </button>
+    </div>
+    <div id="comm_preview" style="margin-top:8px;font-size:12px;color:#92400e;display:none">
+      العمولة المحسوبة: <strong id="comm_preview_val">0</strong> د.إ/قطعة
+    </div>`;
+
+  const addFormFlat = `
+    <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:end">
+      <div>
+        <label style="font-size:12px;color:var(--gray-500);display:block;margin-bottom:4px">الوصف</label>
+        <input type="text" id="comm_desc" placeholder="مثال: عمولة الحاج فاروق"
+          style="width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px">
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--gray-500);display:block;margin-bottom:4px">العمولة (د.إ/قطعة)</label>
+        <input type="number" id="comm_rate" min="0" step="0.5" placeholder="مثال: 20"
+          style="width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px">
+      </div>
+      <button class="btn btn-success" onclick="saveCommission()" style="padding:9px 18px">
+        <i class="fa fa-save"></i> حفظ
+      </button>
+    </div>`;
+
+  const html = `
+  <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <div style="width:36px;height:36px;border-radius:8px;background:${color};display:flex;align-items:center;justify-content:center;color:#fff">
+        <i class="fa fa-percent"></i>
+      </div>
+      <div>
+        <h3 style="font-size:15px;font-weight:800;margin:0">إدارة العمولات — ${s.name}</h3>
+        <span style="font-size:12px;color:var(--gray-400)">${isMiami ? 'جدول تسعير المصنع حسب سعر العميل (دولار → درهم)' : 'معدلات العمولة لكل مورد/صنف'}</span>
+      </div>
+      <button class="btn btn-sm btn-outline" onclick="showCommissionForm()" style="margin-right:auto">
+        <i class="fa fa-plus"></i> إضافة
+      </button>
+    </div>
+
+    <!-- نموذج الإضافة/التعديل -->
+    <div id="commissionFormBox" style="display:none;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:var(--gray-600);margin-bottom:10px" id="commFormTitle">
+        <i class="fa fa-plus-circle" style="color:${color}"></i> إضافة عمولة جديدة
+      </div>
+      ${isMiami ? addFormMiami : addFormFlat}
+      <div style="margin-top:8px;text-align:left">
+        <button class="btn btn-sm btn-outline" onclick="cancelCommission()">إلغاء</button>
+      </div>
+    </div>
+
+    <!-- الجدول -->
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+            ${tableHeaders}
+          </tr>
+        </thead>
+        <tbody id="commTableBody">
+          ${tableRows || '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--gray-400)"><i class=\'fa fa-inbox\' style=\'font-size:24px;display:block;margin-bottom:8px\'></i>لا توجد عمولات محفوظة بعد</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+
+  document.getElementById('tabContent').innerHTML = html;
+
+  // ربط حدث معاينة العمولة للميامي
+  if (isMiami) {
+    ['comm_client_price','comm_factory_price'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', updateCommPreview);
+    });
+  }
+}
+
+function updateCommPreview() {
+  const cp = parseFloat(document.getElementById('comm_client_price')?.value) || 0;
+  const fp = parseFloat(document.getElementById('comm_factory_price')?.value) || 0;
+  const preview = document.getElementById('comm_preview');
+  const previewVal = document.getElementById('comm_preview_val');
+  if (preview && previewVal) {
+    const rate = ((cp * 3.67) - fp).toFixed(2);
+    previewVal.textContent = rate;
+    preview.style.display = (cp > 0 || fp > 0) ? 'block' : 'none';
+  }
+}
+
+function showCommissionForm() {
+  const box0 = document.getElementById('commissionFormBox');
+  if (box0) box0.dataset.editingId = '';
+  const isMiami = currentSection === 'miami_factory';
+  const titleEl = document.getElementById('commFormTitle');
+  if (titleEl) titleEl.innerHTML = '<i class="fa fa-plus-circle"></i> إضافة عمولة جديدة';
+  const box = document.getElementById('commissionFormBox');
+  if (box) box.style.display = 'block';
+  if (isMiami) {
+    const cp = document.getElementById('comm_client_price');
+    const fp = document.getElementById('comm_factory_price');
+    if (cp) cp.value = '';
+    if (fp) fp.value = '';
+    const preview = document.getElementById('comm_preview');
+    if (preview) preview.style.display = 'none';
+  } else {
+    const d = document.getElementById('comm_desc');
+    const r = document.getElementById('comm_rate');
+    if (d) d.value = '';
+    if (r) r.value = '';
+  }
+}
+
+function cancelCommission() {
+  const box = document.getElementById('commissionFormBox');
+  if (box) { box.dataset.editingId = ''; box.style.display = 'none'; }
+}
+
+function saveCommission() {
+  const isMiami = currentSection === 'miami_factory';
+  if (!DB[currentSection].commissions) DB[currentSection].commissions = [];
+  const _editingCommId = (document.getElementById('commissionFormBox')?.dataset.editingId || '').trim();
+
+  if (isMiami) {
+    const cp = parseFloat(document.getElementById('comm_client_price')?.value);
+    const fp = parseFloat(document.getElementById('comm_factory_price')?.value);
+    if (!cp || !fp) { alert('يرجى إدخال سعر العميل وسعر المصنع'); return; }
+    if (_editingCommId) {
+      const idx = DB[currentSection].commissions.findIndex(c => c.id === _editingCommId);
+      if (idx > -1) {
+        DB[currentSection].commissions[idx] = {
+          ...DB[currentSection].commissions[idx],
+          client_price: cp, factory_price: fp,
+          desc: 'جلابية $' + cp + ' → مصنع ' + fp + ' د.إ',
+          rate: 0, updatedAt: new Date().toISOString()
+        };
+      }
+    } else {
+      DB[currentSection].commissions.push({
+        id: 'comm_' + Date.now(),
+        client_price: cp, factory_price: fp,
+        desc: 'جلابية $' + cp + ' → مصنع ' + fp + ' د.إ',
+        rate: 0, updatedAt: new Date().toISOString()
+      });
+    }
+  } else {
+    const desc = document.getElementById('comm_desc')?.value?.trim();
+    const rate = parseFloat(document.getElementById('comm_rate')?.value);
+    if (!desc || !rate) { alert('يرجى إدخال الوصف والعمولة'); return; }
+    if (_editingCommId) {
+      const idx = DB[currentSection].commissions.findIndex(c => c.id === _editingCommId);
+      if (idx > -1) {
+        DB[currentSection].commissions[idx] = {
+          ...DB[currentSection].commissions[idx],
+          desc, rate, updatedAt: new Date().toISOString()
+        };
+      }
+    } else {
+      DB[currentSection].commissions.push({
+        id: 'comm_' + Date.now(),
+        desc, rate, updatedAt: new Date().toISOString()
+      });
+    }
+  }
+
+  const box2 = document.getElementById('commissionFormBox');
+  if (box2) box2.dataset.editingId = '';
+  saveDB();
+  renderCommissionsTab();
+}
+
+function editCommission(commId) {
+  const isMiami = currentSection === 'miami_factory';
+  const comms = DB[currentSection].commissions || [];
+  const c = comms.find(x => x.id === commId);
+  if (!c) return;
+
+  // حفظ ID المُعدَّل في dataset على الـ formBox (أموثق 100%)
+  const box = document.getElementById('commissionFormBox');
+  if (box) {
+    box.dataset.editingId = commId;  // تخزين ID على العنصر مباشرةً
+    box.style.display = 'block';
+  }
+  const titleEl = document.getElementById('commFormTitle');
+  const color = SECTIONS[currentSection]?.color || '#1a3a5c';
+  if (titleEl) titleEl.innerHTML = `<i class="fa fa-pencil" style="color:${color}"></i> تعديل العمولة`;
+
+  if (isMiami) {
+    const cp = document.getElementById('comm_client_price');
+    const fp = document.getElementById('comm_factory_price');
+    if (cp) cp.value = c.client_price;
+    if (fp) fp.value = c.factory_price;
+    updateCommPreview();
+  } else {
+    const d = document.getElementById('comm_desc');
+    const r = document.getElementById('comm_rate');
+    if (d) d.value = c.desc;
+    if (r) r.value = c.rate;
+  }
+}
+
+function deleteCommission(commId) {
+  if (!confirm('هل تريد حذف هذه العمولة؟')) return;
+  DB[currentSection].commissions = (DB[currentSection].commissions || []).filter(c => c.id !== commId);
+  saveDB();
+  renderCommissionsTab();
+}
+
+
+function renderTodayTab() {
+  const sec  = DB[currentSection];
+  const s    = SECTIONS[currentSection];
+  const todayStr = today();
+
+  const todayInvoices = sec.invoices.filter(i => !i.deleted && i.date === todayStr);
+  const todayPayments = sec.payments.filter(p => !p.deleted && p.date === todayStr);
+
+  const totalInvAmt  = todayInvoices.reduce((sum, i) => sum + Number(i.total || 0), 0);
+  const totalInvPcs  = todayInvoices.reduce((sum, i) => {
+    return sum + (i.items ? i.items.reduce((s2, it) => s2 + Number(it.qty || 0), 0) : 0);
+  }, 0);
+  const totalPayAmt  = todayPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+  const dateFormatted = new Date().toLocaleDateString('ar-EG', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  let invRows = '';
+  todayInvoices.forEach(inv => {
+    const client = sec.clients.find(c => c.id === inv.clientId);
+    const pcs = inv.items ? inv.items.reduce((s2, it) => s2 + Number(it.qty || 0), 0) : 0;
+    invRows += `<tr>
+      <td><strong style="color:var(--primary)">#${inv.num}</strong></td>
+      <td>${client ? client.name : '—'}</td>
+      <td style="text-align:center;font-weight:700;color:#0369a1">${fmtNum(pcs, 0)}</td>
+      <td><strong class="amount-positive">${fmtNum(inv.total)} ${s.curSymbol}</strong></td>
+      ${inv.factoryInvNum ? `<td><span class="badge badge-warning"><i class="fa fa-industry"></i> #${inv.factoryInvNum}</span></td>` : `<td><span class="badge badge-neutral">—</span></td>`}
+      <td>
+        <button class="btn btn-xs btn-primary btn-icon" title="طباعة" onclick="printInvoice('${inv.id}')"><i class="fa fa-print"></i></button>
+        <button class="btn btn-xs btn-icon" title="${inv.factoryInvId ? 'تعديل فاتورة المصنع' : 'إنشاء فاتورة المصنع'}"
+          style="background:${inv.factoryInvId ? '#b45309' : '#7c2d12'};color:#fff"
+          onclick="openFactoryInvModal('${inv.id}')">
+          <i class="fa ${inv.factoryInvId ? 'fa-edit' : 'fa-industry'}"></i>
+          ${inv.factoryInvId ? '#' + inv.factoryInvNum : ''}
+        </button>
+        <button class="btn btn-xs btn-info btn-icon" title="كشف حساب العميل" onclick="viewClientStatement('${inv.clientId}')"><i class="fa fa-file-lines"></i></button>
+        <button class="btn btn-xs btn-danger btn-icon" title="تصدير PDF مباشر" onclick="downloadStatementPDF('${inv.clientId}')"><i class="fa fa-file-pdf"></i></button>
+      </td>
+    </tr>`;
+  });
+
+  let payRows = '';
+  todayPayments.forEach(pay => {
+    const client = sec.clients.find(c => c.id === pay.clientId);
+    payRows += `<tr>
+      <td>${client ? client.name : '—'}</td>
+      <td><strong class="amount-negative">${fmtNum(pay.amount)} ${s.curSymbol}</strong></td>
+      <td><span class="badge badge-info">${pay.method || 'كاش'}</span></td>
+      <td style="font-size:12px;color:var(--gray-500)">${pay.notes || '—'}</td>
+    </tr>`;
+  });
+
+  const html = `
+<div class="stats-row">
+  <div class="stat-box blue">
+    <div class="stat-val">${todayInvoices.length}</div>
+    <div class="stat-lbl">فاتورة اليوم</div>
+  </div>
+  <div class="stat-box purple">
+    <div class="stat-val">${fmtNum(totalInvPcs, 0)}</div>
+    <div class="stat-lbl">إجمالي القطع اليوم</div>
+  </div>
+  <div class="stat-box green">
+    <div class="stat-val">${fmtNum(totalInvAmt, 0)}</div>
+    <div class="stat-lbl">${s.curSymbol} إجمالي الفواتير</div>
+  </div>
+  <div class="stat-box orange">
+    <div class="stat-val">${fmtNum(totalPayAmt, 0)}</div>
+    <div class="stat-lbl">${s.curSymbol} مدفوعات اليوم</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">
+    <i class="fa fa-calendar-day" style="color:#0369a1"></i>
+    فواتير اليوم — ${dateFormatted}
+  </div>
+  ${todayInvoices.length ? `
+  <div class="tbl-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>رقم الفاتورة</th>
+        <th>العميل</th>
+        <th style="text-align:center">القطع</th>
+        <th>الصافي</th>
+        <th>فاتورة المصنع</th>
+        <th>إجراء</th>
+      </tr>
+    </thead>
+    <tbody>${invRows}</tbody>
+    <tfoot>
+      <tr style="background:var(--gray-50);font-weight:700">
+        <td colspan="2" style="padding:10px 14px">الإجمالي</td>
+        <td style="padding:10px 14px;text-align:center;color:#0369a1">${fmtNum(totalInvPcs, 0)}</td>
+        <td style="padding:10px 14px;color:var(--success)">${fmtNum(totalInvAmt)} ${s.curSymbol}</td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>
+  </div>` : `<div class="empty-state"><i class="fa fa-calendar-xmark"></i><p>لا توجد فواتير اليوم بعد</p></div>`}
+</div>
+
+${todayPayments.length ? `
+<div class="card">
+  <div class="card-title"><i class="fa fa-money-bill-wave" style="color:var(--success)"></i> مدفوعات اليوم</div>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>العميل</th><th>المبلغ</th><th>الطريقة</th><th>البيان</th></tr></thead>
+    <tbody>${payRows}</tbody>
+    <tfoot>
+      <tr style="background:var(--gray-50);font-weight:700">
+        <td style="padding:10px 14px">الإجمالي</td>
+        <td style="padding:10px 14px;color:var(--success)">${fmtNum(totalPayAmt)} ${s.curSymbol}</td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>
+  </div>
+</div>` : ''}
+`;
+
+  document.getElementById('tabContent').innerHTML = html;
+}
 
 // Expose functions to window for onclick handlers
 window.renderPage = renderPage;
@@ -4536,6 +5500,17 @@ window.bulkCurrencyChanged = bulkCurrencyChanged;
 window.deleteItemImage = deleteItemImage;
 window.imgThumbWithDelete = imgThumbWithDelete;
 window.restoreFromIndexedDB = restoreFromIndexedDB;
+window.openFactoryInvModal = openFactoryInvModal;
+window.renderCommissionsTab = renderCommissionsTab;
+window.showCommissionForm = showCommissionForm;
+window.cancelCommission = cancelCommission;
+window.saveCommission = saveCommission;
+window.editCommission = editCommission;
+window.deleteCommission = deleteCommission;
+window.updateCommPreview = updateCommPreview;
+window.calcFactoryInv = calcFactoryInv;
+window.saveFactoryInvoice = saveFactoryInvoice;
+window.renderTodayTab = renderTodayTab;
 
 console.log('✨ جميع الوظائف تم تحميلها بنجاح - نظام الحفظ المُعزَّز نشط');
 
